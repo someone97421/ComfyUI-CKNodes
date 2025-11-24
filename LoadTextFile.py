@@ -84,5 +84,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "Text_Load_From_File": "👻从文件加载文本-CK"
+    "Text_Load_From_File": "👻从文件加载文本-CK👻"
 }

@@ -99,5 +99,5 @@ NODE_CLASS_MAPPINGS = {
 
 # 给节点一个在界面上显示的好看名字
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "ExtractFramesFromBatch": "👻从批次提取帧(Extract Frames)-CK"
+    "ExtractFramesFromBatch": "👻从批次提取帧-CK👻"
 }
