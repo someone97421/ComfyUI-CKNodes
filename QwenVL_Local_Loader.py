@@ -388,5 +388,6 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "QwenVL_Local_Loader": "👻Qwen3VL (Local Loader)👻",
+    "QwenVL_Local_Loader": "👻Qwen3VL (Local Loader)-CK👻",
+
 }
