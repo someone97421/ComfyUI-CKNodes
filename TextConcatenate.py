@@ -22,7 +22,7 @@ class Text_Concatenate:
     RETURN_TYPES = ("STRING",)
     FUNCTION = "text_concatenate"
 
-    CATEGORY = "CKNodes"
+    CATEGORY = "👻CKNodes/text"
 
     def text_concatenate(self, delimiter, clean_whitespace, **kwargs):
         text_inputs = []

@@ -339,7 +339,7 @@ class QwenVL_Local_Loader(QwenVL_Local_Base):
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("RESPONSE",)
     FUNCTION = "process"
-    CATEGORY = "🧪AILab/Local"
+    CATEGORY = "👻CKNodes/Local"
 
     def process(
         self,

@@ -25,7 +25,7 @@ class Text_Load_From_File:
     RETURN_TYPES = (TEXT_TYPE, "DICT")
     FUNCTION = "load_file"
 
-    CATEGORY = "CKNodes"
+    CATEGORY = "👻CKNodes/text"
 
     def load_file(self, file_path='', dictionary_name='[filename]'):
 

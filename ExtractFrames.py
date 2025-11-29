@@ -44,7 +44,7 @@ class ExtractFramesFromBatch:
 
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "extract_frames"
-    CATEGORY = "image/batch"  # 将节点放在 "image/batch" 类别下
+    CATEGORY = "👻CKNodes/batch"  # 将节点放在 "image/batch" 类别下
 
     def extract_frames(self, image, start_index, direction, frame_count):
         """
