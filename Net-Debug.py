@@ -1,59 +1,63 @@
 import os
 import sys
 import subprocess
-import socket
 
 # --- 1. 定义万能类型 (Any Type) ---
+# 确保任何类型的连线都能接入
 class AnyType(str):
-    def __ne__(self, __value):
+    def __ne__(self, __value: object) -> bool:
         return False
 
+# 实例化万能对象
 any_type = AnyType("*")
 
 # --- 2. 核心检测逻辑 ---
 def get_network_diagnostics():
     lines = []
-    lines.append("🌐 --- 网络环境诊断报告 (Network Diagnostics) ---")
+    lines.append("🌐 --- 网络环境诊断报告 (Diagnostics) ---")
     
-    # 1. [系统代理 System Proxy]
-    proxy_keys = ['http_proxy', 'https_proxy', 'all_proxy', 'no_proxy']
-    proxies = []
+    # 1. [系统环境变量代理]
+    # 检查大写和小写，以及 ALL_PROXY
+    proxy_keys = [
+        'HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'NO_PROXY',
+        'http_proxy', 'https_proxy', 'all_proxy', 'no_proxy'
+    ]
+    
+    active_proxies = []
     for key in proxy_keys:
-        # 检查大写和小写环境变量
-        val = os.environ.get(key) or os.environ.get(key.upper())
+        val = os.environ.get(key)
         if val:
-            proxies.append(f"  - {key.upper()}: {val}")
+            active_proxies.append(f"  - {key}: {val}")
     
-    if proxies:
-        lines.append("[系统代理]:\n" + "\n".join(proxies))
+    if active_proxies:
+        lines.append("[当前生效代理 (Environment)]:\n" + "\n".join(active_proxies))
     else:
-        lines.append("[系统代理]: 无 (Direct)")
+        lines.append("[当前生效代理 (Environment)]: 无 (Direct/None)")
 
-    # 2. [PIP 配置] (镜像与代理)
-    pip_lines = []
+    # 2. [特殊加速配置]
+    special_lines = []
+    
+    # PIP
     pip_index = os.environ.get('PIP_INDEX_URL')
-    pip_proxy = os.environ.get('PIP_PROXY')
-    
     if pip_index:
-        pip_lines.append(f"  - 镜像源 (INDEX_URL): {pip_index}")
-    else:
-        pip_lines.append(f"  - 镜像源: 默认 (PyPI)")
-        
-    if pip_proxy:
-        pip_lines.append(f"  - 独立代理 (PIP_PROXY): {pip_proxy}")
+        special_lines.append(f"  - PIP 源: {pip_index}")
     
-    lines.append("[PIP 配置]:\n" + "\n".join(pip_lines))
-
-    # 3. [Hugging Face 镜像]
+    # HuggingFace
     hf_endpoint = os.environ.get('HF_ENDPOINT')
     if hf_endpoint:
-        lines.append(f"[HF 镜像]: {hf_endpoint}")
+        special_lines.append(f"  - HF 镜像: {hf_endpoint}")
     else:
-        lines.append("[HF 镜像]: 未设置 (使用官方 hugginface.co)")
+        special_lines.append(f"  - HF 镜像: 默认 (huggingface.co)")
 
-    # 4. [Git 配置]
+    # GH_PROXY (ComfyUI 常用)
+    gh_proxy = os.environ.get('GH_PROXY')
+    if gh_proxy:
+        special_lines.append(f"  - Git/GH 加速: {gh_proxy}")
+        
+    lines.append("[镜像/加速源]:\n" + "\n".join(special_lines))
+
+    # 3. [Git 全局配置]
     try:
-        # 获取 global 配置
         git_out = subprocess.check_output(
             ['git', 'config', '--global', '--list'], 
             stderr=subprocess.STDOUT, text=True, timeout=2
@@ -62,50 +66,27 @@ def get_network_diagnostics():
         relevant_git = []
         for c in git_out:
             c = c.strip()
-            # 筛选 url替换(insteadOf) 和 http.proxy
             if 'url' in c or 'proxy' in c:
                 relevant_git.append(f"  - {c}")
                 
         if relevant_git:
-            lines.append("[Git 配置]:\n" + "\n".join(relevant_git))
+            lines.append("[Git 全局文件配置 (Global Config)]:\n" + "\n".join(relevant_git))
         else:
-            lines.append("[Git 配置]: 无全局代理/镜像设置")
-    except FileNotFoundError:
-        lines.append("[Git 配置]: 未找到 git 命令")
-    except Exception as e:
-        lines.append(f"[Git 配置]: 检测出错 ({str(e)})")
-
-    # 5. [端口占用 Port Usage]
-    try:
-        import psutil
-        lines.append("[端口占用]:")
-        proc = psutil.Process()
-        # 获取当前进程(ComfyUI)监听的端口
-        listening = [c for c in proc.connections(kind='inet') if c.status == 'LISTEN']
-        if listening:
-            for c in listening:
-                lines.append(f"  - 本地端口: {c.laddr.port} (类型: {c.type})")
-        else:
-            lines.append("  - 当前进程无监听端口 (可能由父进程管理)")
-            
-    except ImportError:
-        lines.append("[端口占用]: 未安装 psutil 库，无法检测")
-    except Exception as e:
-        lines.append(f"[端口占用]: 检测失败 ({str(e)})")
+            lines.append("[Git 全局文件配置]: 无")
+    except Exception:
+        pass
 
     lines.append("------------------------------------------------")
     return "\n".join(lines)
 
 
 # --- 3. 启动时立即执行打印 (Global Execution) ---
-# 这段代码会在 ComfyUI 加载此节点文件时直接运行
-print("\n" + "="*20 + " 👻-网络信息-👻 " + "="*20)
+# 【保留功能】这段代码会在 ComfyUI 启动/加载此节点时直接运行
+print("\n" + "="*20 + " 👻-网络信息(启动监测)-👻 " + "="*20)
 try:
-    # 获取并打印报告
-    start_report = get_network_diagnostics()
-    print(start_report)
+    print(get_network_diagnostics())
 except Exception as e:
-    print(f"❌ 自检脚本运行错误: {e}")
+    print(f"❌ 启动自检失败: {e}")
 print("="*62 + "\n")
 
 
@@ -118,12 +99,15 @@ class NetDebugNodeAny:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "input_data": (any_type,), 
+                # 【修改】只保留这一个输入口，名称统一
+                # 使用 any_type 确保可以接任何东西
+                "any_input": (any_type, {}), 
             },
         }
 
+    # 输出也是 AnyType
     RETURN_TYPES = (any_type,)
-    RETURN_NAMES = ("output_data",)
+    RETURN_NAMES = ("any_output",)
     
     FUNCTION = "do_debug"
     CATEGORY = "👻CKNodes"
@@ -131,17 +115,17 @@ class NetDebugNodeAny:
     # 设为 True 确保节点始终运行
     OUTPUT_NODE = True
 
-    def do_debug(self, input_data):
-        # 运行时再次获取（以防中途修改了环境变量）
+    def do_debug(self, any_input):
+        # 运行时再次获取（显示最新状态）
         report = get_network_diagnostics()
         
         # 控制台打印
-        print("\n" + "▼"*20 + " 👻-网络信息-👻 " + "▼"*20)
+        print("\n" + "▼"*20 + " 👻-网络状态快照-👻 " + "▼"*20)
         print(report)
         print("▲"*20 + " [End Report] " + "▲"*20 + "\n")
 
-        # 直通数据
-        return (input_data,)
+        # 返回 UI 显示文本，并透传输入数据
+        return {"ui": {"text": [report]}, "result": (any_input,)}
 
 # --- 节点注册 ---
 NODE_CLASS_MAPPINGS = {
@@ -149,5 +133,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "NetDebugNodeAny": "👻网络信息-CK👻"
+    "NetDebugNodeAny": "👻网络信息诊断-CK👻"
 }
