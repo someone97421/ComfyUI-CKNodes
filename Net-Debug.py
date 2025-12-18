@@ -111,6 +111,10 @@ class NetDebugNodeAny:
     
     FUNCTION = "do_debug"
     CATEGORY = "👻CKNodes"
+
+    DESCRIPTION = """
+    在控制台显示当前代理及镜像设置
+    """
     
     # 设为 True 确保节点始终运行
     OUTPUT_NODE = True
