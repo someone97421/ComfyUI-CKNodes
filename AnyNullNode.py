@@ -32,5 +32,6 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "AnyNullNode": "空输入InputNone"
+    "AnyNullNode": "👻空输入InputNone👻"
+
 }
