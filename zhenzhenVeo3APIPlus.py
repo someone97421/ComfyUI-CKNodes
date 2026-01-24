@@ -58,7 +58,7 @@ class CK_Googel_Veo3:
                     "veo3.1", "veo3.1-fast", "veo3.1-pro",
                     "veo3.1-components", "veo3.1-4k",
                     "veo3.1-pro-4k", "veo3.1-components-4k"
-                ], {"default": "veo3-fast"}),
+                ], {"default": "veo3.1-fast"}),
                 "enhance_prompt": ("BOOLEAN", {"default": False}),
                 "aspect_ratio": (["16:9", "9:16"], {"default": "16:9"}),
             },
@@ -68,7 +68,7 @@ class CK_Googel_Veo3:
                 "image2": ("IMAGE",),
                 "image3": ("IMAGE",),
                 "seed": ("INT", {"default": 0, "min": 0, "max": 2147483647}),
-                "enable_upsample": ("BOOLEAN", {"default": False}),
+                "enable_upsample": ("BOOLEAN", {"default": True}),
                 "save_path": ("STRING", {
                     "default": "",
                     "placeholder": "Example: D:\\VeoVideos"
@@ -296,3 +296,4 @@ NODE_CLASS_MAPPINGS = {
 NODE_DISPLAY_NAME_MAPPINGS = {
     "CK_Googel_Veo3": "👻 Google Veo3 (Plus)"
 }
+
