@@ -44,8 +44,9 @@ class CK_Googel_Veo3:
     OUTPUT_NODE = True
     CATEGORY = "👻CKNodes"
     FUNCTION = "generate_video"
-    RETURN_TYPES = ("IMAGE", "AUDIO", "STRING", "STRING", "STRING")
-    RETURN_NAMES = ("images", "audio", "video_path", "video_url", "response")
+    # 输出定义：图像、音频、帧率、视频路径、视频URL、调试信息
+    RETURN_TYPES = ("IMAGE", "AUDIO", "FLOAT", "STRING", "STRING", "STRING")
+    RETURN_NAMES = ("images", "audio", "fps", "video_path", "video_url", "response")
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -81,7 +82,6 @@ class CK_Googel_Veo3:
         self.output_dir = folder_paths.get_output_directory()
         self.type = "output"
 
-    # ================= 工具方法 =================
     def get_headers(self):
         return {
             "Authorization": f"Bearer {self.api_key}",
@@ -97,7 +97,12 @@ class CK_Googel_Veo3:
     def load_video_frames(self, path):
         frames = []
         cap = cv2.VideoCapture(path)
+        fps = 24.0
         try:
+            fps = cap.get(cv2.CAP_PROP_FPS)
+            if fps == 0 or np.isnan(fps):
+                fps = 24.0
+                
             while True:
                 ret, frame = cap.read()
                 if not ret:
@@ -108,15 +113,45 @@ class CK_Googel_Veo3:
             cap.release()
 
         if not frames:
-            return torch.zeros((1, 64, 64, 3))
-        return torch.from_numpy(np.stack(frames))
+            return torch.zeros((1, 64, 64, 3)), fps
+            
+        return torch.from_numpy(np.stack(frames)), float(fps)
 
+    # 修改点：增强版音频加载，解决 MP4 无声问题
     def load_audio(self, path):
+        # 1. 尝试 PyAV (最稳妥，支持 MP4)
+        try:
+            import av
+            container = av.open(path)
+            stream = container.streams.audio[0] # 获取第一个音频流
+            
+            resampler = av.audio.resampler.AudioResampler(format='flt', layout='stereo')
+            
+            audio_data = []
+            for frame in container.decode(stream):
+                # 重采样并转换为 numpy
+                frame.pts = None
+                for new_frame in resampler.resample(frame):
+                    audio_data.append(new_frame.to_ndarray())
+
+            if audio_data:
+                # 拼接所有帧
+                audio_np = np.concatenate(audio_data, axis=1)
+                return {
+                    "waveform": torch.from_numpy(audio_np).unsqueeze(0),
+                    "sample_rate": stream.rate
+                }
+        except Exception as e:
+            print(f"👻 [CK_Node] PyAV loading failed: {e}")
+
+        # 2. 回退到 Torchaudio (有些环境可能没有 pyav)
         try:
             waveform, sr = torchaudio.load(path)
             return {"waveform": waveform.unsqueeze(0), "sample_rate": sr}
-        except:
-            return None
+        except Exception as e:
+            print(f"👻 [CK_Node] Torchaudio also failed: {e}")
+            
+        return None
 
     # ================= 核心逻辑 =================
     def generate_video(
@@ -126,11 +161,12 @@ class CK_Googel_Veo3:
     ):
         empty_img = torch.zeros((1, 64, 64, 3))
         empty_audio = None
+        empty_fps = 0.0
 
         def error(msg):
             return {
                 "ui": {"text": [msg]},
-                "result": (empty_img, empty_audio, "", "", msg)
+                "result": (empty_img, empty_audio, empty_fps, "", "", msg)
             }
 
         if apikey.strip():
@@ -164,33 +200,39 @@ class CK_Googel_Veo3:
         if images:
             payload["images"] = images
 
-        res = requests.post(
-            f"{baseurl}/v2/videos/generations",
-            headers=self.get_headers(),
-            json=payload,
-            timeout=self.timeout
-        )
-        if res.status_code != 200:
-            return error(res.text)
+        try:
+            res = requests.post(
+                f"{baseurl}/v2/videos/generations",
+                headers=self.get_headers(),
+                json=payload,
+                timeout=self.timeout
+            )
+            if res.status_code != 200:
+                return error(res.text)
 
-        task_id = res.json().get("task_id")
-        if not task_id:
-            return error("No task_id returned")
+            task_id = res.json().get("task_id")
+            if not task_id:
+                return error("No task_id returned")
+        except Exception as e:
+            return error(f"Request failed: {str(e)}")
 
         pbar.update_absolute(30)
 
         video_url = None
         for _ in range(150):
             time.sleep(2)
-            s = requests.get(
-                f"{baseurl}/v2/videos/generations/{task_id}",
-                headers=self.get_headers()
-            ).json()
-            if s.get("status") == "SUCCESS":
-                video_url = s["data"]["output"]
-                break
-            if s.get("status") == "FAILURE":
-                return error(s.get("fail_reason", "Generation failed"))
+            try:
+                s = requests.get(
+                    f"{baseurl}/v2/videos/generations/{task_id}",
+                    headers=self.get_headers()
+                ).json()
+                if s.get("status") == "SUCCESS":
+                    video_url = s["data"]["output"]
+                    break
+                if s.get("status") == "FAILURE":
+                    return error(s.get("fail_reason", "Generation failed"))
+            except:
+                continue
 
         if not video_url:
             return error("Generation timeout")
@@ -198,20 +240,27 @@ class CK_Googel_Veo3:
         filename = f"veo3_{task_id}_{int(time.time())}.mp4"
         comfy_path = os.path.join(self.output_dir, filename)
 
-        with requests.get(video_url, stream=True) as r:
-            r.raise_for_status()
-            with open(comfy_path, "wb") as f:
-                for c in r.iter_content(8192):
-                    f.write(c)
+        try:
+            with requests.get(video_url, stream=True) as r:
+                r.raise_for_status()
+                with open(comfy_path, "wb") as f:
+                    for c in r.iter_content(8192):
+                        f.write(c)
+        except Exception as e:
+             return error(f"Download failed: {str(e)}")
 
         final_path = comfy_path
         if save_path.strip():
-            os.makedirs(save_path, exist_ok=True)
-            user_path = os.path.join(save_path, filename)
-            shutil.copy(comfy_path, user_path)
-            final_path = user_path
+            try:
+                os.makedirs(save_path, exist_ok=True)
+                user_path = os.path.join(save_path, filename)
+                shutil.copy(comfy_path, user_path)
+                final_path = user_path
+            except Exception as e:
+                print(f"Warning: Failed to copy to custom path: {e}")
 
-        images_out = self.load_video_frames(comfy_path)
+        # 解码所有帧和 FPS
+        images_out, fps_out = self.load_video_frames(comfy_path)
         audio_out = self.load_audio(comfy_path)
 
         pbar.update_absolute(100)
@@ -227,12 +276,14 @@ class CK_Googel_Veo3:
             "result": (
                 images_out,
                 audio_out,
+                fps_out,
                 final_path,
                 video_url,
                 json.dumps({
                     "task_id": task_id,
                     "video_url": video_url,
-                    "local_path": final_path
+                    "local_path": final_path,
+                    "fps": fps_out
                 }, ensure_ascii=False)
             )
         }
@@ -243,5 +294,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "CK_Googel_Veo3": "👻 Google Veo3 (Video Preview)"
+    "CK_Googel_Veo3": "👻 Google Veo3 (Plus)"
 }
