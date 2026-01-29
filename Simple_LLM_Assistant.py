@@ -6,7 +6,7 @@ import base64
 import os
 import json
 
-# 尝试导入openai库，如果没有安装则报错提示
+# 尝试导入openai库
 try:
     from openai import OpenAI
 except ImportError:
@@ -71,7 +71,7 @@ class SimpleOpenAI_LLM:
         img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
         return f"data:image/jpeg;base64,{img_str}"
 
-def generate_completion(self, api_url, api_key, model_name, system_prompt, user_prompt, temperature, max_tokens, seed, images=None):
+    def generate_completion(self, api_url, api_key, model_name, system_prompt, user_prompt, temperature, max_tokens, seed, images=None):
         
         # 初始化客户端
         client = OpenAI(
@@ -84,13 +84,16 @@ def generate_completion(self, api_url, api_key, model_name, system_prompt, user_
 
         # 处理图片输入 (支持 Batch/Video)
         if images is not None:
+            # images 是一个 Tensor [Batch, H, W, C]
             batch_size = images.shape[0]
             for i in range(batch_size):
+                # 获取每一帧/张图
                 image_data = self.tensor_to_base64(images[i])
                 content_list.append({
                     "type": "image_url",
                     "image_url": {
                         "url": image_data,
+                        # detail: auto 允许模型根据分辨率决定处理方式
                         "detail": "auto" 
                     }
                 })
@@ -108,24 +111,20 @@ def generate_completion(self, api_url, api_key, model_name, system_prompt, user_
                 max_tokens=max_tokens,
                 seed=seed
             )
-            
-            # --- 修复核心：兼容性处理 ---
+
+            # --- 兼容性处理开始 ---
             
             # 情况1: 如果返回的是字符串（Raw JSON 或 直接文本）
             if isinstance(response, str):
-                # 尝试解析 JSON
                 try:
                     response = json.loads(response)
                 except:
-                    # 如果无法解析JSON，假设它就是最终的文本结果（某些非标API的行为）
                     return (response,)
 
-            # 情况2: 如果是字典 (Dict)，通常发生在使用旧版库或代理时
+            # 情况2: 如果是字典 (Dict)
             if isinstance(response, dict):
-                # 使用字典方式取值 ['choices']
                 if 'choices' in response and len(response['choices']) > 0:
                     choice = response['choices'][0]
-                    # choice 本身也可能是字典或对象
                     if isinstance(choice, dict):
                         result = choice.get('message', {}).get('content', '')
                     else:
@@ -146,6 +145,7 @@ def generate_completion(self, api_url, api_key, model_name, system_prompt, user_
             error_msg = f"API Error: {str(e)}"
             print(f"\033[31m{error_msg}\033[0m")
             return (error_msg,)
+
 # 节点映射
 NODE_CLASS_MAPPINGS = {
     "SimpleOpenAI_LLM": SimpleOpenAI_LLM
@@ -153,5 +153,4 @@ NODE_CLASS_MAPPINGS = {
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "SimpleOpenAI_LLM": "👻简单LLM助手-API👻"
-
 }
