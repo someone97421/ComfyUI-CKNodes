@@ -35,6 +35,7 @@ git clone https://github.com/someone97421/ComfyUI-CKNodes.git
 | **any_list_count**            | 输入任意列表/数组，返回其中元素个数（INT）                                      | AI生成，小工具                |
 | **text_line_count**           | 输入一段文本，返回总行数（INT）                                                | AI生成，小工具                |
 | **zhenzhenVeo3APIPlus**       | 针对 ZhenZhen / Veo3 API 的增强调用节点（可能支持批量、参数优化等）             | 具体功能待补充，可能为实验节点 |
+| **Smart_merge_images**       | 选自https://github.com/supElement/ComfyUI_Element_easy 完美的局部融合方案             | 感谢作者 |
 
 ## 分类说明（大致）
 
