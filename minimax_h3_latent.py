@@ -69,6 +69,49 @@ def align_video_latent_t(latent_t, mode="up"):
     )
 
 
+def align_spatial_pixels(value, mode="nearest"):
+    """将像素宽高对齐到 H3 VAE + DiT 共同要求的 32 倍数。"""
+    value = float(value)
+    if not math.isfinite(value) or value <= 0:
+        raise ValueError("目标宽高必须是大于 0 的有限数字")
+
+    units = value / H3_CANVAS_MULTIPLE
+    if mode == "exact":
+        if abs(units - round(units)) >= 1e-6:
+            raise ValueError(f"{value:g} 不是 {H3_CANVAS_MULTIPLE} 的整数倍")
+        aligned_units = round(units)
+    elif mode == "down":
+        aligned_units = math.floor(units + 1e-9)
+    elif mode == "up":
+        aligned_units = math.ceil(units - 1e-9)
+    elif mode == "nearest":
+        aligned_units = math.floor(units + 0.5)
+    else:
+        raise ValueError(f"不支持的空间对齐方式：{mode}")
+
+    return max(H3_CANVAS_MULTIPLE, int(aligned_units) * H3_CANVAS_MULTIPLE)
+
+
+def calculate_h3_resize(width, height, resize_mode, target_width, target_height, scale_by, align_mode):
+    if width < H3_CANVAS_MULTIPLE or height < H3_CANVAS_MULTIPLE:
+        raise ValueError("输入 latent 对应的像素宽高必须至少为 32")
+
+    if resize_mode == "target_resolution":
+        raw_width = target_width
+        raw_height = target_height
+    elif resize_mode == "scale_by":
+        if not math.isfinite(scale_by) or scale_by <= 0:
+            raise ValueError("scale_by 必须是大于 0 的有限数字")
+        raw_width = width * scale_by
+        raw_height = height * scale_by
+    else:
+        raise ValueError(f"不支持的 resize_mode：{resize_mode}")
+
+    output_width = align_spatial_pixels(raw_width, align_mode)
+    output_height = align_spatial_pixels(raw_height, align_mode)
+    return output_width, output_height
+
+
 def frames_to_video_latent_t(frame_count):
     frame_count, _ = align_frame_count(frame_count, "exact")
     return ((frame_count - VIDEO_FRAME_OFFSET) // VIDEO_FRAME_BLOCK) * VIDEO_LATENT_BLOCK + VIDEO_LATENT_OFFSET
@@ -310,6 +353,135 @@ class CKMiniMaxH3CombineAVLatent(io.ComfyNode):
         if combined_mask is not None:
             output["noise_mask"] = combined_mask
         return io.NodeOutput(output)
+
+
+class CKMiniMaxH3LatentResize(io.ComfyNode):
+    @classmethod
+    def define_schema(cls):
+        return io.Schema(
+            node_id="CKMiniMaxH3LatentResize",
+            display_name="CK MiniMax H3 Latent Resize",
+            description="按目标分辨率或缩放倍数调整 H3 视频 latent，自动对齐到 32 像素合法尺寸；联合 AV 的音频流保持不变。",
+            category="CK Nodes/MiniMax H3/Latent",
+            inputs=[
+                io.Latent.Input("latent"),
+                io.Combo.Input(
+                    "resize_mode",
+                    options=["target_resolution", "scale_by"],
+                    default="target_resolution",
+                ),
+                io.Int.Input("target_width", default=1344, min=1, max=0x7FFFFFFF, step=1),
+                io.Int.Input("target_height", default=768, min=1, max=0x7FFFFFFF, step=1),
+                io.Float.Input("scale_by", default=1.5, min=0.01, max=100.0, step=0.01),
+                io.Combo.Input(
+                    "align_mode",
+                    options=["nearest", "down", "up", "exact"],
+                    default="nearest",
+                    tooltip="将最终像素宽高对齐到 32 的倍数；exact 会在输入不合法时报错。",
+                ),
+                io.Combo.Input(
+                    "upscale_method",
+                    options=["nearest-exact", "bilinear", "area", "bicubic", "bislerp"],
+                    default="bicubic",
+                ),
+                io.Combo.Input(
+                    "crop",
+                    options=["disabled", "center"],
+                    default="disabled",
+                    tooltip="center 会先居中裁剪到目标宽高比；disabled 会直接缩放。",
+                ),
+            ],
+            outputs=[
+                io.Latent.Output(display_name="latent"),
+                io.Int.Output(display_name="width"),
+                io.Int.Output(display_name="height"),
+                io.Float.Output(display_name="actual_scale_x"),
+                io.Float.Output(display_name="actual_scale_y"),
+            ],
+        )
+
+    @classmethod
+    def execute(
+        cls,
+        latent,
+        resize_mode,
+        target_width,
+        target_height,
+        scale_by,
+        align_mode,
+        upscale_method,
+        crop,
+    ):
+        video, audio, is_av = split_latent_streams(latent)
+        if video is None:
+            raise ValueError("输入 latent 中没有可缩放的视频流")
+        validate_video_tensor(video)
+
+        input_height = video.shape[-2] * H3_SPATIAL_DOWNSCALE
+        input_width = video.shape[-1] * H3_SPATIAL_DOWNSCALE
+        output_width, output_height = calculate_h3_resize(
+            input_width,
+            input_height,
+            resize_mode,
+            target_width,
+            target_height,
+            scale_by,
+            align_mode,
+        )
+        latent_width = output_width // H3_SPATIAL_DOWNSCALE
+        latent_height = output_height // H3_SPATIAL_DOWNSCALE
+
+        resized_video = comfy.utils.common_upscale(
+            video,
+            latent_width,
+            latent_height,
+            upscale_method,
+            crop,
+        )
+        validate_video_tensor(resized_video, "缩放后视频 latent")
+        if resized_video.shape[-2] % H3_DIT_PATCH_SPATIAL or resized_video.shape[-1] % H3_DIT_PATCH_SPATIAL:
+            raise RuntimeError("内部错误：缩放后的 latent 空间尺寸未对齐到 H3 2x2 patch")
+
+        video_mask, audio_mask = split_noise_masks(latent, is_av)
+        resized_video_mask = None
+        if video_mask is not None:
+            resized_video_mask = comfy.utils.common_upscale(
+                video_mask,
+                latent_width,
+                latent_height,
+                "nearest-exact",
+                crop,
+            )
+
+        output = latent.copy()
+        if is_av:
+            output["samples"] = comfy.nested_tensor.NestedTensor((resized_video, audio))
+        else:
+            output["samples"] = resized_video
+
+        output.pop("noise_mask", None)
+        if is_av:
+            combined_mask = build_av_noise_mask(resized_video, audio, resized_video_mask, audio_mask)
+            if combined_mask is not None:
+                output["noise_mask"] = combined_mask
+        elif resized_video_mask is not None:
+            output["noise_mask"] = resized_video_mask
+
+        output["ck_minimax_h3_resize"] = {
+            "input_width": input_width,
+            "input_height": input_height,
+            "output_width": output_width,
+            "output_height": output_height,
+            "resize_mode": resize_mode,
+            "align_mode": align_mode,
+        }
+        return io.NodeOutput(
+            output,
+            output_width,
+            output_height,
+            output_width / input_width,
+            output_height / input_height,
+        )
 
 
 class CKMiniMaxH3ImageVAEEncode(io.ComfyNode):
@@ -665,6 +837,7 @@ class CKMiniMaxH3TimeConvert(io.ComfyNode):
 NODE_CLASS_MAPPINGS = {
     "CKMiniMaxH3SeparateAVLatent": CKMiniMaxH3SeparateAVLatent,
     "CKMiniMaxH3CombineAVLatent": CKMiniMaxH3CombineAVLatent,
+    "CKMiniMaxH3LatentResize": CKMiniMaxH3LatentResize,
     "CKMiniMaxH3ImageVAEEncode": CKMiniMaxH3ImageVAEEncode,
     "CKMiniMaxH3ReplaceVideoLatentByIndex": CKMiniMaxH3ReplaceVideoLatentByIndex,
     "CKMiniMaxH3LatentInfo": CKMiniMaxH3LatentInfo,
@@ -675,6 +848,7 @@ NODE_CLASS_MAPPINGS = {
 NODE_DISPLAY_NAME_MAPPINGS = {
     "CKMiniMaxH3SeparateAVLatent": "CK MiniMax H3 Separate AV Latent",
     "CKMiniMaxH3CombineAVLatent": "CK MiniMax H3 Combine AV Latent",
+    "CKMiniMaxH3LatentResize": "CK MiniMax H3 Latent Resize",
     "CKMiniMaxH3ImageVAEEncode": "CK MiniMax H3 Image VAE Encode",
     "CKMiniMaxH3ReplaceVideoLatentByIndex": "CK MiniMax H3 Replace Video Latent By Index",
     "CKMiniMaxH3LatentInfo": "CK MiniMax H3 Latent Info",

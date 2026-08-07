@@ -107,6 +107,60 @@ class MiniMaxH3LatentHelpersTest(unittest.TestCase):
         ).result[0]
         self.assertNotIn("noise_mask", output)
 
+    def test_spatial_alignment(self):
+        self.assertEqual(MODULE.align_spatial_pixels(1000, "nearest"), 992)
+        self.assertEqual(MODULE.align_spatial_pixels(1000, "down"), 992)
+        self.assertEqual(MODULE.align_spatial_pixels(1000, "up"), 1024)
+        self.assertEqual(MODULE.align_spatial_pixels(1, "nearest"), 32)
+        self.assertEqual(MODULE.align_spatial_pixels(1024, "exact"), 1024)
+        with self.assertRaises(ValueError):
+            MODULE.align_spatial_pixels(1000, "exact")
+
+    def test_latent_resize_target_resolution(self):
+        video = torch.zeros((1, 24, 7, 4, 6))
+        latent = {"samples": video, "custom": "kept"}
+        output, width, height, scale_x, scale_y = MODULE.CKMiniMaxH3LatentResize.execute(
+            latent, "target_resolution", 1000, 570, 1.0, "nearest", "bicubic", "disabled"
+        ).result
+
+        self.assertEqual((width, height), (992, 576))
+        self.assertEqual(tuple(output["samples"].shape), (1, 24, 7, 36, 62))
+        self.assertEqual(output["custom"], "kept")
+        self.assertAlmostEqual(scale_x, 992 / 96)
+        self.assertAlmostEqual(scale_y, 576 / 64)
+
+    def test_latent_resize_by_scale_preserves_audio_and_masks(self):
+        video = torch.zeros((1, 24, 7, 4, 6))
+        audio = torch.randn((1, 32, 2, 40))
+        video_mask = torch.zeros((1, 1, 7, 4, 6))
+        video_mask[..., 2:, 3:] = 1
+        audio_mask = torch.rand_like(audio)
+        latent = {
+            "samples": MODULE.comfy.nested_tensor.NestedTensor((video, audio)),
+            "noise_mask": MODULE.comfy.nested_tensor.NestedTensor((video_mask, audio_mask)),
+        }
+
+        output, width, height, scale_x, scale_y = MODULE.CKMiniMaxH3LatentResize.execute(
+            latent, "scale_by", 1, 1, 1.5, "nearest", "nearest-exact", "disabled"
+        ).result
+        output_video, output_audio = output["samples"].unbind()
+        output_video_mask, output_audio_mask = output["noise_mask"].unbind()
+
+        self.assertEqual((width, height), (160, 96))
+        self.assertEqual(tuple(output_video.shape), (1, 24, 7, 6, 10))
+        self.assertEqual(tuple(output_video_mask.shape), (1, 1, 7, 6, 10))
+        self.assertIs(output_audio, audio)
+        self.assertIs(output_audio_mask, audio_mask)
+        self.assertAlmostEqual(scale_x, 160 / 96)
+        self.assertAlmostEqual(scale_y, 96 / 64)
+
+    def test_latent_resize_rejects_audio_only(self):
+        audio = {"samples": torch.zeros((1, 32, 2, 40))}
+        with self.assertRaises(ValueError):
+            MODULE.CKMiniMaxH3LatentResize.execute(
+                audio, "scale_by", 1, 1, 2.0, "nearest", "bicubic", "disabled"
+            )
+
     def test_image_encode_selects_and_aligns_canvas(self):
         image = torch.zeros((2, 770, 1346, 3))
         output, width, height = MODULE.CKMiniMaxH3ImageVAEEncode.execute(

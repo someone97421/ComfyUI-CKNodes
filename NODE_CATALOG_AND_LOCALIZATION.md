@@ -38,6 +38,7 @@ CK Nodes
 
 - `CKMiniMaxH3SeparateAVLatent`
 - `CKMiniMaxH3CombineAVLatent`
+- `CKMiniMaxH3LatentResize`
 - `CKMiniMaxH3ImageVAEEncode`
 - `CKMiniMaxH3ReplaceVideoLatentByIndex`
 - `CKMiniMaxH3LatentInfo`

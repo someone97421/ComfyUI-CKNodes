@@ -14,6 +14,7 @@ CK Nodes/MiniMax H3/Latent
 |---|---|
 | `CK MiniMax H3 Separate AV Latent` | 将联合 AV latent 分成视频和音频两个 latent |
 | `CK MiniMax H3 Combine AV Latent` | 将视频和音频 latent 重新组合成联合 AV latent |
+| `CK MiniMax H3 Latent Resize` | 按目标分辨率或倍数缩放视频 latent，并自动对齐 H3 合法空间尺寸 |
 | `CK MiniMax H3 Image VAE Encode` | 使用 H3 视频 VAE 将图片编码成 `[1,24,1,H/16,W/16]` latent |
 | `CK MiniMax H3 Replace Video Latent By Index` | 按视频 latent 的时间索引替换一段 latent |
 | `CK MiniMax H3 Latent Info` | 查看 latent 类型、形状、帧数、时长与结构合法性 |
@@ -81,7 +82,45 @@ NestedTensor((video_noise_mask, audio_noise_mask))
 
 合并节点不会擅自裁剪或补齐音频长度。需要先通过信息或换算节点确认视频和音频时长是否匹配。
 
-## 4. 图片 VAE 编码
+## 4. Latent 尺寸缩放
+
+该节点接受纯视频 latent 或联合 AV latent，只改变视频流的空间尺寸：
+
+```text
+[B,24,T,H,W] -> [B,24,T,new_H,new_W]
+```
+
+时间长度 `T`、batch 和通道数保持不变。联合 AV 输入中的音频 latent 原样保留；视频 `noise_mask` 使用最近邻方式同步缩放，音频 mask 原样保留。
+
+### 尺寸模式
+
+| 模式 | 行为 |
+|---|---|
+| `target_resolution` | 使用 `target_width` 和 `target_height` 作为目标像素分辨率 |
+| `scale_by` | 根据输入像素尺寸乘以 `scale_by` 计算目标分辨率 |
+
+H3 视频 VAE 的空间压缩率为 16，DiT 使用 `2x2` latent patch，所以最终像素宽高必须是 32 的倍数。节点会根据 `align_mode` 自动修正：
+
+| 对齐方式 | 行为 |
+|---|---|
+| `nearest` | 对齐到最近的 32 倍数，默认模式 |
+| `down` | 向下对齐，最低为 32 |
+| `up` | 向上对齐 |
+| `exact` | 不自动修正，输入不合法时直接报错 |
+
+例如输入 latent 对应 `96x64` 像素，倍数为 `1.5`：
+
+```text
+原始计算: 144x96
+合法输出: 160x96
+latent:   10x6
+```
+
+节点额外输出实际像素宽高和横纵实际倍数，便于检查对齐后是否产生宽高比偏差。
+
+`crop=disabled` 会直接拉伸到目标尺寸；`crop=center` 会先按目标宽高比居中裁剪，再缩放。
+
+## 5. 图片 VAE 编码
 
 该节点必须连接 MiniMax H3 视频 VAE。
 
@@ -121,7 +160,7 @@ NestedTensor((video_noise_mask, audio_noise_mask))
 
 它不是合法的 H3 空目标生成序列；目标序列的 T 通常满足 `5k+2`。
 
-## 5. 按时间索引替换视频 Latent
+## 6. 按时间索引替换视频 Latent
 
 输入：
 
@@ -192,7 +231,7 @@ replacement 的 T 可以不同。
 - 将替换区段 mask 设为 1。
 - 允许模型正常去噪替换区域。
 
-## 6. Latent 信息获取
+## 7. Latent 信息获取
 
 输入 latent 可以是：
 
@@ -228,7 +267,7 @@ duration_seconds
 
 图片 VAE 编码产生的 `T=1` 会识别为合法的图片条件/替换 latent，并提示它不是目标生成序列。
 
-## 7. 帧数与 Latent 快捷换算
+## 8. 帧数与 Latent 快捷换算
 
 支持以下输入类型：
 
@@ -276,7 +315,7 @@ audio_latent_t = 207
 duration       = 5.166667 秒
 ```
 
-## 8. 推荐工作流
+## 9. 推荐工作流
 
 ### 图片替换视频 Latent
 

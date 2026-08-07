@@ -178,6 +178,57 @@
       "0": { "name": "音视频联合 latent" }
     }
   },
+  "CKMiniMaxH3LatentResize": {
+    "display_name": "CK MiniMax H3 Latent 尺寸缩放",
+    "description": "按目标分辨率或缩放倍数调整 H3 视频 latent，自动对齐到 32 像素合法尺寸；联合 AV 的音频流保持不变。",
+    "inputs": {
+      "latent": { "name": "目标 latent" },
+      "resize_mode": {
+        "name": "尺寸模式",
+        "options": {
+          "target_resolution": "目标分辨率",
+          "scale_by": "缩放倍数"
+        }
+      },
+      "target_width": { "name": "目标宽度" },
+      "target_height": { "name": "目标高度" },
+      "scale_by": { "name": "缩放倍数" },
+      "align_mode": {
+        "name": "合法值对齐方式",
+        "tooltip": "最终像素宽高必须是 32 的倍数。",
+        "options": {
+          "nearest": "就近对齐",
+          "down": "向下对齐",
+          "up": "向上对齐",
+          "exact": "必须精确合法"
+        }
+      },
+      "upscale_method": {
+        "name": "缩放算法",
+        "options": {
+          "nearest-exact": "精确最近邻",
+          "bilinear": "双线性",
+          "area": "区域采样",
+          "bicubic": "双三次",
+          "bislerp": "球面双线性"
+        }
+      },
+      "crop": {
+        "name": "宽高比处理",
+        "options": {
+          "disabled": "直接缩放",
+          "center": "居中裁剪"
+        }
+      }
+    },
+    "outputs": {
+      "0": { "name": "缩放后的 latent" },
+      "1": { "name": "实际宽度" },
+      "2": { "name": "实际高度" },
+      "3": { "name": "实际横向倍数" },
+      "4": { "name": "实际纵向倍数" }
+    }
+  },
   "CKMiniMaxH3ImageVAEEncode": {
     "display_name": "CK MiniMax H3 图像 VAE 编码",
     "description": "使用 MiniMax H3 视频 VAE 将一张图片编码为单时间位置的 24 通道视频 latent。",
