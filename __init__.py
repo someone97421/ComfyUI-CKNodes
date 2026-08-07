@@ -10,6 +10,7 @@ NODE_DIR = os.path.dirname(os.path.abspath(__file__))
 # 初始化空的映射字典，ComfyUI 将从这里读取
 NODE_CLASS_MAPPINGS = {}
 NODE_DISPLAY_NAME_MAPPINGS = {}
+WEB_DIRECTORY = "./web"
 
 # 遍历目录中的所有文件
 for filename in sorted(os.listdir(NODE_DIR)):
@@ -36,7 +37,7 @@ for filename in sorted(os.listdir(NODE_DIR)):
             print(f"[{os.path.basename(NODE_DIR)}] Error loading node from {filename}: {e}")
 
 # 告诉 ComfyUI 这个包暴露了哪些映射
-__all__ = ['NODE_CLASS_MAPPINGS', 'NODE_DISPLAY_NAME_MAPPINGS']
+__all__ = ['NODE_CLASS_MAPPINGS', 'NODE_DISPLAY_NAME_MAPPINGS', 'WEB_DIRECTORY']
 
 # (可选) 打印一条消息到控制台，确认加载成功
 print(f"Loaded custom nodes from {os.path.basename(NODE_DIR)}: {list(NODE_CLASS_MAPPINGS.keys())}")

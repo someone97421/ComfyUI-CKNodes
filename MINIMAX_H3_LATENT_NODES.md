@@ -99,6 +99,8 @@ NestedTensor((video_noise_mask, audio_noise_mask))
 | `target_resolution` | 使用 `target_width` 和 `target_height` 作为目标像素分辨率 |
 | `scale_by` | 根据输入像素尺寸乘以 `scale_by` 计算目标分辨率 |
 
+界面会根据模式自动切换参数：选择 `target_resolution` 时隐藏 `scale_by`；选择 `scale_by` 时隐藏 `target_width` 和 `target_height`。隐藏的参数仍保留原值，切换回来不会丢失。
+
 H3 视频 VAE 的空间压缩率为 16，DiT 使用 `2x2` latent patch，所以最终像素宽高必须是 32 的倍数。节点会根据 `align_mode` 自动修正：
 
 | 对齐方式 | 行为 |
