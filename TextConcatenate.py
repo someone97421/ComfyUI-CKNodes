@@ -22,7 +22,7 @@ class Text_Concatenate:
     RETURN_TYPES = ("STRING",)
     FUNCTION = "text_concatenate"
 
-    CATEGORY = "👻CKNodes/text"
+    CATEGORY = "CK Nodes/Text"
 
     def text_concatenate(self, delimiter, clean_whitespace, **kwargs):
         text_inputs = []
@@ -58,5 +58,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "Text_Concatenate": "👻文本连锁-CK👻"
+    "Text_Concatenate": "CK Text Concatenate"
 }

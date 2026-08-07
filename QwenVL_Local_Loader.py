@@ -4,7 +4,14 @@ from enum import Enum
 import numpy as np
 import torch
 from PIL import Image
-from transformers import AutoModelForVision2Seq, AutoProcessor, AutoTokenizer, BitsAndBytesConfig
+from transformers import AutoProcessor, AutoTokenizer, BitsAndBytesConfig
+
+try:
+    # Transformers 5.x 使用更通用的 ImageTextToText 自动模型类。
+    from transformers import AutoModelForImageTextToText as AutoVisionLanguageModel
+except ImportError:
+    # 兼容仍提供旧名称的 Transformers 4.x。
+    from transformers import AutoModelForVision2Seq as AutoVisionLanguageModel
 
 import folder_paths
 
@@ -179,7 +186,7 @@ class QwenVL_Local_Base:
         print(f"[QwenVL Local] Settings: {quant.value}, attn={attn_impl}")
 
         try:
-            self.model = AutoModelForVision2Seq.from_pretrained(model_path, **load_kwargs).eval()
+            self.model = AutoVisionLanguageModel.from_pretrained(model_path, **load_kwargs).eval()
         except Exception as e:
             raise RuntimeError(f"Failed to load model. Ensure transformers is up to date. Error: {e}")
 
@@ -339,7 +346,7 @@ class QwenVL_Local_Loader(QwenVL_Local_Base):
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("RESPONSE",)
     FUNCTION = "process"
-    CATEGORY = "👻CKNodes/Local"
+    CATEGORY = "CK Nodes/AI/Vision Language"
 
     def process(
         self,
@@ -388,6 +395,6 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "QwenVL_Local_Loader": "👻Qwen3VL (Local Loader)-CK👻",
+    "QwenVL_Local_Loader": "CK Qwen3-VL Local Loader",
 
 }

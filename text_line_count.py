@@ -23,7 +23,7 @@ class TextLineCount:
     FUNCTION = "count_lines"
 
     # 将节点分类在 utils 下，方便查找
-    CATEGORY = "👻CKNodes/text"
+    CATEGORY = "CK Nodes/Text"
 
     def count_lines(self, text, ignore_empty_lines):
         # 如果文本为空，返回0
@@ -50,5 +50,5 @@ NODE_CLASS_MAPPINGS = {
 
 # 节点显示名称
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "TextLineCount": "👻文本行数-CK👻"
+    "TextLineCount": "CK Text Line Count"
 }

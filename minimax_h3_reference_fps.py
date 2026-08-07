@@ -255,7 +255,7 @@ class CKMiniMaxH3ReferenceToVideoFPS(io.ComfyNode):
             node_id="CKMiniMaxH3ReferenceToVideoFPS",
             display_name="CK MiniMax H3 Reference to Video (Adjustable FPS)",
             description="MiniMax H3 local reference conditioning with automatic audio duration, Qwen timestamps, and DiT timeline adjustment for the selected frame rate.",
-            category="CKNodes/minimax",
+            category="CK Nodes/MiniMax H3/Conditioning",
             inputs=[
                 io.Clip.Input("clip"),
                 io.Vae.Input("vae"),

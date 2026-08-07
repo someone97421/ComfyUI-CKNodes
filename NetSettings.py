@@ -44,7 +44,7 @@ class TemporaryNetSettings:
     RETURN_TYPES = (any_type,)
     RETURN_NAMES = ("any_output",)
     FUNCTION = "apply_settings"
-    CATEGORY = "👻CKNodes"
+    CATEGORY = "CK Nodes/System/Network"
     OUTPUT_NODE = True
 
     DESCRIPTION = """
@@ -116,5 +116,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "TemporaryNetSettings": "👻网络设置-CK👻"
+    "TemporaryNetSettings": "CK Temporary Network Settings"
 }

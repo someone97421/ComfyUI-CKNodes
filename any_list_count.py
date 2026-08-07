@@ -27,7 +27,7 @@ class AnyListCount:
     RETURN_NAMES = ("count",)
     
     FUNCTION = "count_any"
-    CATEGORY = "👻CKNodes/logic"
+    CATEGORY = "CK Nodes/Logic"
 
     # 关键修改：这行告诉 ComfyUI 不要自动迭代列表，而是把整个列表传给函数
     INPUT_IS_LIST = True
@@ -65,5 +65,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "AnyListCount": "👻任意列表数量-CK👻"
+    "AnyListCount": "CK Any List Count"
 }

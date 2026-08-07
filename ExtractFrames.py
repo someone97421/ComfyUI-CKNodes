@@ -44,7 +44,7 @@ class ExtractFramesFromBatch:
 
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "extract_frames"
-    CATEGORY = "👻CKNodes/batch"  # 将节点放在 "image/batch" 类别下
+    CATEGORY = "CK Nodes/Video/Batch"
 
     def extract_frames(self, image, start_index, direction, frame_count):
         """
@@ -99,5 +99,5 @@ NODE_CLASS_MAPPINGS = {
 
 # 给节点一个在界面上显示的好看名字
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "ExtractFramesFromBatch": "👻从批次提取帧-CK👻"
+    "ExtractFramesFromBatch": "CK Extract Frames from Batch"
 }

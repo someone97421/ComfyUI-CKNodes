@@ -12,7 +12,7 @@ NODE_CLASS_MAPPINGS = {}
 NODE_DISPLAY_NAME_MAPPINGS = {}
 
 # 遍历目录中的所有文件
-for filename in os.listdir(NODE_DIR):
+for filename in sorted(os.listdir(NODE_DIR)):
     if filename.endswith(".py") and filename != "__init__.py":
         module_name = filename[:-3]  # 移除 .py 后缀
         file_path = os.path.join(NODE_DIR, filename)

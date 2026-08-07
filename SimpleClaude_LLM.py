@@ -72,7 +72,7 @@ class SimpleClaude_LLM:
     RETURN_TYPES = ("STRING", "STRING", "STRING")
     RETURN_NAMES = ("content", "reasoning", "raw_response")
     FUNCTION = "generate_completion"
-    CATEGORY = "👻CKNodes"
+    CATEGORY = "CK Nodes/AI/LLM"
 
     def tensor_to_base64(self, image_tensor):
         i = 255. * image_tensor.cpu().numpy()
@@ -219,5 +219,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "SimpleClaude_LLM": "👻Claude LLM助手👻"
+    "SimpleClaude_LLM": "CK Claude LLM"
 }

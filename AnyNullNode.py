@@ -22,7 +22,7 @@ class AnyNullNode:
     RETURN_TYPES = (ANY,)
     RETURN_NAMES = ("Null/Empty",)
     FUNCTION = "do_nothing"
-    CATEGORY = "👻CKNodes"
+    CATEGORY = "CK Nodes/Logic"
 
     def do_nothing(self):
         return (None,)
@@ -40,7 +40,7 @@ class AnyBooleanSwitch:
     RETURN_TYPES = (ANY,)
     RETURN_NAMES = ("输出结果",)
     FUNCTION = "process"
-    CATEGORY = "👻CKNodes"
+    CATEGORY = "CK Nodes/Logic"
 
     @classmethod
     def VALIDATE_INPUTS(cls, **kwargs):
@@ -59,6 +59,6 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "AnyNullNode": "👻空输入InputNone👻",
-    "AnyBooleanSwitch": "👻任意布尔开关👻",
+    "AnyNullNode": "CK Empty / Null",
+    "AnyBooleanSwitch": "CK Any Boolean Switch",
 }

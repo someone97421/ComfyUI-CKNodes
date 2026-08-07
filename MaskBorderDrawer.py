@@ -75,7 +75,7 @@ class MaskBorderDrawer:
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("image_with_border",)
     FUNCTION = "draw_border"
-    CATEGORY = "👻CKNodes"
+    CATEGORY = "CK Nodes/Image/Mask"
     DESCRIPTION = "根据遮罩范围在图像上绘制线框边框描边"
 
     def get_mask_bounds(self, mask, expand_pixels=0, mode="separate"):
@@ -259,5 +259,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "MaskBorderDrawer": "👻Mask Border Drawer👻"
+    "MaskBorderDrawer": "CK Mask Border Drawer"
 }

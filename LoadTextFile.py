@@ -25,7 +25,7 @@ class Text_Load_From_File:
     RETURN_TYPES = (TEXT_TYPE, "DICT")
     FUNCTION = "load_file"
 
-    CATEGORY = "👻CKNodes/text"
+    CATEGORY = "CK Nodes/Text"
 
     def load_file(self, file_path='', dictionary_name='[filename]'):
 
@@ -84,5 +84,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "Text_Load_From_File": "👻从文件加载文本-CK👻"
+    "Text_Load_From_File": "CK Load Text from File"
 }

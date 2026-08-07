@@ -60,7 +60,7 @@ class SmartMergeImages:
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("Merged_Image",)
     FUNCTION = "smart_merge"
-    CATEGORY = "Element_easy/image"
+    CATEGORY = "CK Nodes/Image/Composition"
 
     def exact_histogram_match(self, src, ref, mask):
         matched = np.copy(src)
@@ -349,3 +349,13 @@ class SmartMergeImages:
                 result_images.append(original_image[i])
 
         return (torch.stack(result_images),)
+
+
+NODE_CLASS_MAPPINGS = {
+    "CKSmartMergeImages": SmartMergeImages,
+}
+
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "CKSmartMergeImages": "CK Smart Merge Images",
+}

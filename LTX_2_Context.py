@@ -36,7 +36,7 @@ class LTXVContext_TTP:
     RETURN_TYPES = ("LATENT",)
     RETURN_NAMES = ("latent",)
     FUNCTION = "apply_context"
-    CATEGORY = "👻CKNodes"
+    CATEGORY = "CK Nodes/Video/LTXV"
     
     def apply_context(self, previous_video, vae, latent, context_latent_frames, context_strength=1.0):
         # 复制 samples 防止修改源数据
@@ -131,7 +131,7 @@ class LTXVContext_Reverse_TTP:
     RETURN_TYPES = ("LATENT",)
     RETURN_NAMES = ("latent",)
     FUNCTION = "apply_reverse_context"
-    CATEGORY = "👻CKNodes"
+    CATEGORY = "CK Nodes/Video/LTXV"
     
     def apply_reverse_context(self, next_video, vae, latent, context_latent_frames, context_strength=1.0):
         samples = latent["samples"].clone()
@@ -199,6 +199,6 @@ NODE_CLASS_MAPPINGS = {
 
 # 节点显示名称映射
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "LTXVContext_TTP": "👻LTXV Context (Forward) ⏭️👻",
-    "LTXVContext_Reverse_TTP": "👻LTXV Context (Reverse) ⏮️👻"
+    "LTXVContext_TTP": "CK LTXV Context Forward",
+    "LTXVContext_Reverse_TTP": "CK LTXV Context Reverse"
 }

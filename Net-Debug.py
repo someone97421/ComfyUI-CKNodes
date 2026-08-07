@@ -110,7 +110,7 @@ class NetDebugNodeAny:
     RETURN_NAMES = ("any_output",)
     
     FUNCTION = "do_debug"
-    CATEGORY = "👻CKNodes"
+    CATEGORY = "CK Nodes/System/Network"
 
     DESCRIPTION = """
     在控制台显示当前代理及镜像设置
@@ -137,5 +137,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "NetDebugNodeAny": "👻网络信息诊断-CK👻"
+    "NetDebugNodeAny": "CK Network Diagnostics"
 }

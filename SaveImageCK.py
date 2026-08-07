@@ -40,7 +40,7 @@ class SaveImageCK:
 
     OUTPUT_NODE = True
 
-    CATEGORY = "👻CKNodes"
+    CATEGORY = "CK Nodes/Image/Output"
     DESCRIPTION = "Saves the input images to your ComfyUI output directory."
 
     def save_images(self, images, output_folder, filename_prefix="ComfyUI", prompt=None, extra_pnginfo=None, caption=None, caption_file_extension=".txt", encoding="utf-8"):
@@ -106,6 +106,6 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "SaveImageCK": "👻SaveImage-CK👻"
+    "SaveImageCK": "CK Save Image with Caption"
 
 }
