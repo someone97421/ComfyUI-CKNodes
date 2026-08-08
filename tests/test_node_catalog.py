@@ -131,17 +131,10 @@ def collect_literal_inputs_and_options():
 
 
 class NodeCatalogTest(unittest.TestCase):
-    def test_frontend_extension_is_declared_and_present(self):
+    def test_frontend_directory_is_declared(self):
         init_text = (ROOT / "__init__.py").read_text(encoding="utf-8-sig")
-        frontend_path = ROOT / "web" / "js" / "minimax_h3_latent_resize.js"
         self.assertIn('WEB_DIRECTORY = "./web"', init_text)
         self.assertIn("'WEB_DIRECTORY'", init_text)
-        self.assertTrue(frontend_path.is_file())
-
-        frontend = frontend_path.read_text(encoding="utf-8")
-        self.assertIn('const NODE_ID = "CKMiniMaxH3LatentResize"', frontend)
-        self.assertIn('"target_width", "target_height"', frontend)
-        self.assertIn('const SCALE_WIDGETS = ["scale_by"]', frontend)
 
     def test_chinese_locale_is_valid_json(self):
         data = json.loads(LOCALE_PATH.read_text(encoding="utf-8"))

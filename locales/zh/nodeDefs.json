@@ -69,9 +69,7 @@
       "context_latent_frames": { "name": "上下文 latent 帧数" },
       "context_strength": { "name": "上下文强度" }
     },
-    "outputs": {
-      "0": { "name": "latent" }
-    }
+    "outputs": { "0": { "name": "latent" } }
   },
   "LTXVContext_Reverse_TTP": {
     "display_name": "CK LTXV 上下文（反向）",
@@ -83,9 +81,7 @@
       "context_latent_frames": { "name": "上下文 latent 帧数" },
       "context_strength": { "name": "上下文强度" }
     },
-    "outputs": {
-      "0": { "name": "latent" }
-    }
+    "outputs": { "0": { "name": "latent" } }
   },
   "MaskBorderDrawer": {
     "display_name": "CK 遮罩边框绘制",
@@ -94,23 +90,15 @@
       "image": { "name": "图像", "tooltip": "输入原图像。" },
       "mask": { "name": "遮罩", "tooltip": "用于确定绘制边框范围的遮罩。" },
       "stroke_width": { "name": "边框粗细", "tooltip": "边框宽度，单位为像素。" },
-      "box_type": {
-        "name": "边框类型",
-        "options": { "rectangle": "矩形", "rounded": "圆角矩形" }
-      },
+      "box_type": { "name": "边框类型", "options": { "rectangle": "矩形", "rounded": "圆角矩形" } },
       "expand_pixels": { "name": "范围扩展像素", "tooltip": "正数扩大范围，负数缩小范围。" },
       "red": { "name": "红色通道" },
       "green": { "name": "绿色通道" },
       "blue": { "name": "蓝色通道" },
       "corner_radius": { "name": "圆角半径", "tooltip": "仅在圆角矩形模式下生效。" },
-      "draw_mode": {
-        "name": "绘制模式",
-        "options": { "separate": "分别绘制每个区域", "combined": "合并后绘制整体边框" }
-      }
+      "draw_mode": { "name": "绘制模式", "options": { "separate": "分别绘制每个区域", "combined": "合并后绘制整体边框" } }
     },
-    "outputs": {
-      "0": { "name": "带边框图像" }
-    }
+    "outputs": { "0": { "name": "带边框图像" } }
   },
   "CKSmartMergeImages": {
     "display_name": "CK 智能图像融合",
@@ -119,596 +107,20 @@
       "original_image": { "name": "原始图像" },
       "edited_crop_B": { "name": "编辑后的裁剪图 B" },
       "original_crop_A": { "name": "原始裁剪图 A（可选）" },
-      "alignment_mode": {
-        "name": "对齐模式",
-        "options": {
-          "Auto": "自动对齐",
-          "Force Pixel Snapping (Ref B)": "强制像素吸附（参考 B）",
-          "Force Bridge(Ref A & B)": "强制桥接（参考 A 与 B）"
-        }
-      },
-      "color_match": {
-        "name": "颜色匹配方式",
-        "options": {
-          "SeamlessClone (PS Auto Blend)": "无缝克隆（类似 PS 自动混合）",
-          "Adaptive Local (strong)": "自适应局部匹配（强）",
-          "Histogram": "直方图匹配",
-          "LAB_Mean": "LAB 均值匹配",
-          "Alpha Soft Blend": "Alpha 柔和混合",
-          "None": "不匹配"
-        }
-      },
+      "alignment_mode": { "name": "对齐模式", "options": { "Auto": "自动对齐", "Force Pixel Snapping (Ref B)": "强制像素吸附（参考 B）", "Force Bridge(Ref A & B)": "强制桥接（参考 A 与 B）" } },
+      "color_match": { "name": "颜色匹配方式", "options": { "SeamlessClone (PS Auto Blend)": "无缝克隆（类似 PS 自动混合）", "Adaptive Local (strong)": "自适应局部匹配（强）", "Histogram": "直方图匹配", "LAB_Mean": "LAB 均值匹配", "Alpha Soft Blend": "Alpha 柔和混合", "None": "不匹配" } },
       "feather_kernel": { "name": "羽化半径" },
       "adapt_thresh": { "name": "自适应差异阈值" },
       "adapt_align": { "name": "自适应预对齐强度" },
-      "adapt_local_match": {
-        "name": "自适应局部匹配方式",
-        "options": {
-          "Histogram": "直方图匹配",
-          "LAB_Mean": "LAB 均值匹配",
-          "Reinhard": "Reinhard 颜色迁移",
-          "Adaptive Histogram": "自适应直方图",
-          "None": "不匹配"
-        }
-      }
+      "adapt_local_match": { "name": "自适应局部匹配方式", "options": { "Histogram": "直方图匹配", "LAB_Mean": "LAB 均值匹配", "Reinhard": "Reinhard 颜色迁移", "Adaptive Histogram": "自适应直方图", "None": "不匹配" } }
     },
-    "outputs": {
-      "0": { "name": "融合图像" }
-    }
-  },
-  "CKMiniMaxH3SeparateAVLatent": {
-    "display_name": "CK MiniMax H3 拆分音视频 Latent",
-    "description": "将 MiniMax H3 联合 AV latent 分离为视频和音频，并同步拆分 noise mask。",
-    "inputs": {
-      "av_latent": { "name": "音视频联合 latent" }
-    },
-    "outputs": {
-      "0": { "name": "视频 latent" },
-      "1": { "name": "音频 latent" }
-    }
-  },
-  "CKMiniMaxH3CombineAVLatent": {
-    "display_name": "CK MiniMax H3 合并音视频 Latent",
-    "description": "将 H3 视频 latent 和双声道音频 latent 合并成联合 AV NestedTensor，可选按视频时长强制对齐音频。",
-    "inputs": {
-      "video_latent": { "name": "视频 latent" },
-      "audio_latent": { "name": "音频 latent" },
-      "alignment_mode": {
-        "name": "时间对齐方式",
-        "options": {
-          "none": "不强制对齐",
-          "audio_to_video": "强制音频对齐视频"
-        }
-      },
-      "frame_rate": { "name": "视频帧率" },
-      "audio_pad_mode": {
-        "name": "音频不足时补齐方式",
-        "options": {
-          "zeros": "补零 latent",
-          "repeat_last": "重复末尾 latent"
-        }
-      }
-    },
-    "outputs": {
-      "0": { "name": "音视频联合 latent" },
-      "1": { "name": "实际音频 latent T" }
-    }
-  },
-  "CKMiniMaxH3AudioVAEEncode": {
-    "display_name": "CK MiniMax H3 音频 VAE 编码",
-    "description": "使用 H3 音频 VAE 编码为双声道音频 latent，自动重采样到 32 kHz。",
-    "inputs": {
-      "audio": { "name": "音频" },
-      "audio_vae": { "name": "MiniMax H3 音频 VAE" },
-      "batch_index": { "name": "批次索引" }
-    },
-    "outputs": {
-      "0": { "name": "音频 latent" },
-      "1": { "name": "音频 latent T" },
-      "2": { "name": "时长（秒）" },
-      "3": { "name": "编码采样率" }
-    }
-  },
-  "CKMiniMaxH3EmptyVideoLatent": {
-    "display_name": "CK MiniMax H3 空视频 Latent",
-    "description": "创建合法的 H3 空视频 latent，自动对齐空间尺寸和视频时间序列。",
-    "inputs": {
-      "width": { "name": "宽度" },
-      "height": { "name": "高度" },
-      "length_type": {
-        "name": "长度类型",
-        "options": {
-          "video_frames": "视频帧数",
-          "video_latent_t": "视频 latent T",
-          "seconds": "秒数"
-        }
-      },
-      "length_value": { "name": "长度值" },
-      "frame_rate": { "name": "视频帧率" },
-      "temporal_align": {
-        "name": "时间合法值对齐",
-        "options": {
-          "up": "向上对齐",
-          "down": "向下对齐",
-          "nearest": "就近对齐",
-          "exact": "必须精确合法"
-        }
-      },
-      "spatial_align": {
-        "name": "空间合法值对齐",
-        "options": {
-          "nearest": "就近对齐",
-          "down": "向下对齐",
-          "up": "向上对齐",
-          "exact": "必须精确合法"
-        }
-      }
-    },
-    "outputs": {
-      "0": { "name": "空视频 latent" },
-      "1": { "name": "视频帧数" },
-      "2": { "name": "视频 latent T" },
-      "3": { "name": "实际宽度" },
-      "4": { "name": "实际高度" }
-    }
-  },
-  "CKMiniMaxH3EmptyAudioLatent": {
-    "display_name": "CK MiniMax H3 空音频 Latent",
-    "description": "按音频 T、秒数或视频时长创建 H3 双声道空音频 latent。",
-    "inputs": {
-      "length_type": {
-        "name": "长度类型",
-        "options": {
-          "audio_latent_t": "音频 latent T",
-          "seconds": "秒数",
-          "video_frames": "视频帧数",
-          "video_latent_t": "视频 latent T"
-        }
-      },
-      "length_value": { "name": "长度值" },
-      "frame_rate": { "name": "视频帧率" },
-      "temporal_align": {
-        "name": "视频时间合法值对齐",
-        "options": {
-          "up": "向上对齐",
-          "down": "向下对齐",
-          "nearest": "就近对齐",
-          "exact": "必须精确合法"
-        }
-      }
-    },
-    "outputs": {
-      "0": { "name": "空音频 latent" },
-      "1": { "name": "音频 latent T" },
-      "2": { "name": "时长（秒）" }
-    }
-  },
-  "CKMiniMaxH3LatentResize": {
-    "display_name": "CK MiniMax H3 Latent 尺寸缩放",
-    "description": "按目标分辨率或缩放倍数调整 H3 视频 latent，自动对齐到 32 像素合法尺寸；联合 AV 的音频流保持不变。",
-    "inputs": {
-      "latent": { "name": "目标 latent" },
-      "resize_mode": {
-        "name": "尺寸模式",
-        "options": {
-          "target_resolution": "目标分辨率",
-          "scale_by": "缩放倍数"
-        }
-      },
-      "target_width": { "name": "目标宽度" },
-      "target_height": { "name": "目标高度" },
-      "scale_by": { "name": "缩放倍数" },
-      "align_mode": {
-        "name": "合法值对齐方式",
-        "tooltip": "最终像素宽高必须是 32 的倍数。",
-        "options": {
-          "nearest": "就近对齐",
-          "down": "向下对齐",
-          "up": "向上对齐",
-          "exact": "必须精确合法"
-        }
-      },
-      "upscale_method": {
-        "name": "缩放算法",
-        "options": {
-          "nearest-exact": "精确最近邻",
-          "bilinear": "双线性",
-          "area": "区域采样",
-          "bicubic": "双三次",
-          "bislerp": "球面双线性"
-        }
-      },
-      "crop": {
-        "name": "宽高比处理",
-        "options": {
-          "disabled": "直接缩放",
-          "center": "居中裁剪"
-        }
-      }
-    },
-    "outputs": {
-      "0": { "name": "缩放后的 latent" },
-      "1": { "name": "实际宽度" },
-      "2": { "name": "实际高度" },
-      "3": { "name": "实际横向倍数" },
-      "4": { "name": "实际纵向倍数" }
-    }
-  },
-  "CKMiniMaxH3ImageVAEEncode": {
-    "display_name": "CK MiniMax H3 图像 VAE 编码",
-    "description": "使用 MiniMax H3 视频 VAE 将一张图片编码为单时间位置的 24 通道视频 latent。",
-    "inputs": {
-      "image": { "name": "图像" },
-      "vae": { "name": "MiniMax H3 视频 VAE" },
-      "batch_index": { "name": "批次索引" },
-      "canvas_mode": {
-        "name": "画布处理方式",
-        "options": {
-          "center_crop_to_32": "居中裁剪到 32 的倍数",
-          "resize_to_nearest_32": "缩放到最近的 32 倍数",
-          "keep": "保持原尺寸"
-        }
-      }
-    },
-    "outputs": {
-      "0": { "name": "视频 latent" },
-      "1": { "name": "编码宽度" },
-      "2": { "name": "编码高度" }
-    }
-  },
-  "CKMiniMaxH3ReplaceVideoLatentByIndex": {
-    "display_name": "CK MiniMax H3 按索引替换视频 Latent",
-    "description": "从指定视频 latent 时间索引开始替换一段 latent；联合 AV 输入的音频保持不变。",
-    "inputs": {
-      "target_latent": { "name": "目标 latent" },
-      "replacement_latent": { "name": "替换 latent" },
-      "time_index": { "name": "视频 latent 时间索引", "tooltip": "这是 video latent T 索引，不是像素视频帧索引。" },
-      "overflow_mode": {
-        "name": "越界处理",
-        "options": { "error": "越界时报错", "trim": "自动截断" }
-      },
-      "noise_mask_mode": {
-        "name": "噪声遮罩处理",
-        "options": {
-          "preserve_target": "保留目标遮罩",
-          "use_replacement_if_present": "有替换遮罩时使用",
-          "freeze_replaced": "冻结替换区域",
-          "denoise_replaced": "正常去噪替换区域"
-        }
-      }
-    },
-    "outputs": {
-      "0": { "name": "替换后的 latent" },
-      "1": { "name": "替换起始索引" },
-      "2": { "name": "实际替换长度" },
-      "3": { "name": "替换结束索引（不含）" }
-    }
-  },
-  "CKMiniMaxH3LatentInfo": {
-    "display_name": "CK MiniMax H3 Latent 信息",
-    "description": "读取 H3 视频、音频或联合 AV latent 的形状、帧数、时长和结构合法性。",
-    "inputs": {
-      "latent": { "name": "latent" },
-      "frame_rate": { "name": "视频帧率" }
-    },
-    "outputs": {
-      "0": { "name": "信息" },
-      "1": { "name": "是否为联合 AV" },
-      "2": { "name": "H3 结构是否合法" },
-      "3": { "name": "批次大小" },
-      "4": { "name": "宽度" },
-      "5": { "name": "高度" },
-      "6": { "name": "视频帧数" },
-      "7": { "name": "视频 latent T" },
-      "8": { "name": "音频 latent T" },
-      "9": { "name": "时长（秒）" }
-    }
-  },
-  "CKMiniMaxH3TimeConvert": {
-    "display_name": "CK MiniMax H3 帧数 / Latent 换算",
-    "description": "在视频帧数、视频 latent T、音频 latent T 和秒数之间换算，并按 H3 合法序列对齐。",
-    "inputs": {
-      "source_type": {
-        "name": "输入值类型",
-        "options": {
-          "video_frames": "视频帧数",
-          "video_latent_t": "视频 latent T",
-          "audio_latent_t": "音频 latent T",
-          "seconds": "秒数"
-        }
-      },
-      "value": { "name": "输入值" },
-      "frame_rate": { "name": "视频帧率" },
-      "align_mode": {
-        "name": "对齐方式",
-        "options": {
-          "up": "向上对齐",
-          "down": "向下对齐",
-          "nearest": "就近对齐",
-          "exact": "必须精确合法"
-        }
-      }
-    },
-    "outputs": {
-      "0": { "name": "视频帧数" },
-      "1": { "name": "视频 latent T" },
-      "2": { "name": "音频 latent T" },
-      "3": { "name": "时长（秒）" },
-      "4": { "name": "输入是否无需对齐" },
-      "5": { "name": "换算信息" }
-    }
-  },
-  "CKMiniMaxH3VideoVAEEncode": {
-    "display_name": "CK MiniMax H3 视频 VAE 编码",
-    "description": "将 IMAGE 批次视为视频帧，对齐到 17k+5 后使用 MiniMax H3 视频 VAE 编码。",
-    "inputs": {
-      "video": { "name": "视频帧批次" },
-      "vae": { "name": "MiniMax H3 视频 VAE" },
-      "frame_align": {
-        "name": "帧数对齐方式",
-        "options": {
-          "down": "向下裁剪到合法帧数",
-          "up": "重复末帧补齐到合法帧数",
-          "exact": "必须已经是合法帧数"
-        }
-      },
-      "canvas_mode": {
-        "name": "画布处理方式",
-        "options": {
-          "center_crop_to_32": "居中裁剪到 32 的倍数",
-          "resize_to_nearest_32": "缩放到最近的 32 倍数",
-          "keep": "保持原尺寸"
-        }
-      }
-    },
-    "outputs": {
-      "0": { "name": "视频 latent" },
-      "1": { "name": "视频帧数" },
-      "2": { "name": "视频 latent T" },
-      "3": { "name": "编码宽度" },
-      "4": { "name": "编码高度" }
-    }
-  },
-  "CKMiniMaxH3TrimLatent": {
-    "display_name": "CK MiniMax H3 截取 Latent",
-    "description": "按 video latent T 索引截取视频，并按照 H3 时间坐标同步截取联合音频。",
-    "inputs": {
-      "latent": { "name": "目标 latent" },
-      "start_index": { "name": "起始 latent 索引" },
-      "latent_length": { "name": "截取 latent 长度" },
-      "frame_rate": { "name": "视频帧率" },
-      "trim_mode": {
-        "name": "截取模式",
-        "options": {
-          "strict_h3": "严格保持 H3 时间相位",
-          "raw": "原始索引截取（实验性）"
-        }
-      }
-    },
-    "outputs": {
-      "0": { "name": "截取后的 latent" },
-      "1": { "name": "视频帧数" },
-      "2": { "name": "视频 latent T" },
-      "3": { "name": "音频 latent T" }
-    }
-  },
-  "CKMiniMaxH3ConcatLatents": {
-    "display_name": "CK MiniMax H3 拼接 Latent",
-    "description": "拼接两个 H3 视频或联合 AV latent；标准模式自动处理视频 token 与音频边界重叠。",
-    "inputs": {
-      "first_latent": { "name": "第一段 latent" },
-      "second_latent": { "name": "第二段 latent" },
-      "frame_rate": { "name": "视频帧率" },
-      "concat_mode": {
-        "name": "拼接模式",
-        "options": {
-          "h3_overlap": "H3 合法重叠拼接",
-          "raw": "直接拼接（实验性）"
-        }
-      },
-      "blend_mode": {
-        "name": "重叠区混合方式",
-        "options": {
-          "linear": "线性渐变混合",
-          "keep_first": "保留第一段",
-          "keep_second": "保留第二段"
-        }
-      }
-    },
-    "outputs": {
-      "0": { "name": "拼接后的 latent" },
-      "1": { "name": "视频帧数" },
-      "2": { "name": "视频 latent T" },
-      "3": { "name": "音频 latent T" }
-    }
-  },
-  "CKMiniMaxH3TemporalMask": {
-    "display_name": "CK MiniMax H3 音视频同步时间遮罩",
-    "description": "按照 video latent T 区间创建视频遮罩，并可同步映射到联合音频时间轴。",
-    "inputs": {
-      "latent": { "name": "目标 latent" },
-      "start_index": { "name": "开始索引" },
-      "end_index": { "name": "结束索引（不含）", "tooltip": "设置为 0 时表示直到视频 latent 末尾。" },
-      "inside_strength": { "name": "区间内遮罩强度" },
-      "outside_strength": { "name": "区间外遮罩强度" },
-      "feather": { "name": "时间羽化长度" },
-      "affect_audio": { "name": "同步影响音频" },
-      "frame_rate": { "name": "视频帧率" },
-      "combine_mode": {
-        "name": "与现有遮罩组合方式",
-        "options": {
-          "replace": "替换现有遮罩",
-          "multiply": "相乘",
-          "maximum": "取最大值",
-          "minimum": "取最小值"
-        }
-      }
-    },
-    "outputs": {
-      "0": { "name": "带时间遮罩的 latent" }
-    }
-  },
-  "CKMiniMaxH3VideoTemporalMask": {
-    "display_name": "CK MiniMax H3 视频时间遮罩",
-    "description": "按视频 latent T 索引只修改视频 noise mask，联合 AV 的音频遮罩保持不变。",
-    "inputs": {
-      "latent": { "name": "视频或联合 AV latent" },
-      "start_index": { "name": "视频开始索引" },
-      "end_index": { "name": "视频结束索引（不含）", "tooltip": "设置为 0 时表示直到视频 latent 末尾。" },
-      "inside_strength": { "name": "区间内遮罩强度" },
-      "outside_strength": { "name": "区间外遮罩强度" },
-      "feather": { "name": "视频 latent 羽化长度" },
-      "combine_mode": {
-        "name": "与现有视频遮罩组合方式",
-        "options": {
-          "replace": "替换现有遮罩",
-          "multiply": "相乘",
-          "maximum": "取最大值",
-          "minimum": "取最小值"
-        }
-      }
-    },
-    "outputs": {
-      "0": { "name": "带视频时间遮罩的 latent" }
-    }
-  },
-  "CKMiniMaxH3AudioTemporalMask": {
-    "display_name": "CK MiniMax H3 音频时间遮罩",
-    "description": "按音频 latent T 索引只修改音频 noise mask，支持纯音频和联合 AV latent。",
-    "inputs": {
-      "latent": { "name": "音频或联合 AV latent" },
-      "start_index": { "name": "音频开始索引" },
-      "end_index": { "name": "音频结束索引（不含）", "tooltip": "设置为 0 时表示直到音频 latent 末尾。" },
-      "inside_strength": { "name": "区间内遮罩强度" },
-      "outside_strength": { "name": "区间外遮罩强度" },
-      "feather": { "name": "音频 latent 羽化长度" },
-      "combine_mode": {
-        "name": "与现有音频遮罩组合方式",
-        "options": {
-          "replace": "替换现有遮罩",
-          "multiply": "相乘",
-          "maximum": "取最大值",
-          "minimum": "取最小值"
-        }
-      }
-    },
-    "outputs": {
-      "0": { "name": "带音频时间遮罩的 latent" }
-    }
-  },
-  "CKMiniMaxH3ApplyVideoMask": {
-    "display_name": "CK MiniMax H3 应用视频 Mask",
-    "description": "将逐帧像素 MASK 转换为 H3 视频 latent 时空遮罩，并写入联合或纯视频 latent。",
-    "inputs": {
-      "latent": { "name": "目标 latent" },
-      "mask": { "name": "视频 Mask" },
-      "invert_mask": { "name": "反转 Mask" },
-      "interpolation": {
-        "name": "时空映射方式",
-        "options": {
-          "h3_max": "H3 帧跨度最大值聚合",
-          "h3_mean": "H3 帧跨度平均值聚合",
-          "trilinear": "三线性插值",
-          "nearest": "最近邻插值"
-        }
-      },
-      "combine_mode": {
-        "name": "与现有遮罩组合方式",
-        "options": {
-          "replace": "替换现有遮罩",
-          "multiply": "相乘",
-          "maximum": "取最大值",
-          "minimum": "取最小值"
-        }
-      }
-    },
-    "outputs": {
-      "0": { "name": "带视频遮罩的 latent" }
-    }
-  },
-  "CKMiniMaxH3VideoVAEEncodeMaskedNoise": {
-    "display_name": "CK MiniMax H3 视频 VAE 遮罩加噪编码",
-    "description": "编码视频，在 MASK 白色区域混合标准 latent 噪声，并生成对应的视频 noise mask。",
-    "inputs": {
-      "video": { "name": "视频帧批次" },
-      "mask": { "name": "加噪区域 Mask", "tooltip": "白色区域加噪并参与去噪，黑色区域保留原始 VAE 编码。" },
-      "vae": { "name": "MiniMax H3 视频 VAE" },
-      "seed": { "name": "噪声种子" },
-      "noise_strength": { "name": "初始加噪强度" },
-      "denoise_strength": { "name": "去噪遮罩强度" },
-      "invert_mask": { "name": "反转 Mask" },
-      "frame_align": {
-        "name": "帧数对齐方式",
-        "options": {
-          "down": "向下裁剪到合法帧数",
-          "up": "重复末帧补齐到合法帧数",
-          "exact": "必须已经是合法帧数"
-        }
-      },
-      "canvas_mode": {
-        "name": "画布处理方式",
-        "options": {
-          "center_crop_to_32": "居中裁剪到 32 的倍数",
-          "resize_to_nearest_32": "缩放到最近的 32 倍数",
-          "keep": "保持原尺寸"
-        }
-      },
-      "mask_interpolation": {
-        "name": "Mask 时空映射方式",
-        "options": {
-          "h3_max": "H3 帧跨度最大值聚合",
-          "h3_mean": "H3 帧跨度平均值聚合",
-          "trilinear": "三线性插值",
-          "nearest": "最近邻插值"
-        }
-      }
-    },
-    "outputs": {
-      "0": { "name": "遮罩加噪 latent" },
-      "1": { "name": "原始干净 latent" },
-      "2": { "name": "视频帧数" },
-      "3": { "name": "视频 latent T" }
-    }
-  },
-  "CKMiniMaxH3ReferenceToVideoFPS": {
-    "display_name": "CK MiniMax H3 参考生成视频（可调帧率）",
-    "description": "支持图片、视频和音频参考，并同步调整目标音频长度、Qwen 时间戳与 H3 DiT 时间坐标。",
-    "inputs": {
-      "clip": { "name": "H3 文本编码器" },
-      "vae": { "name": "H3 视频 VAE" },
-      "audio_vae": { "name": "H3 音频 VAE" },
-      "prompt": { "name": "提示词" },
-      "width": { "name": "宽度" },
-      "height": { "name": "高度" },
-      "length": { "name": "视频帧数" },
-      "frame_rate": { "name": "时间轴帧率" },
-      "ref_image_size": {
-        "name": "参考图片尺寸策略",
-        "options": { "match": "匹配目标像素面积", "max": "最大参考保真度" }
-      },
-      "ref_images": { "name": "参考图片" },
-      "ref_image": { "name": "参考图片" },
-      "ref_videos": { "name": "参考视频" },
-      "ref_video": { "name": "参考视频" },
-      "ref_video_audios": { "name": "参考视频音轨" },
-      "ref_video_audio": { "name": "参考视频音轨" },
-      "ref_audios": { "name": "独立参考音频" },
-      "ref_audio": { "name": "独立参考音频" }
-    },
-    "outputs": {
-      "0": { "name": "正面条件" },
-      "1": { "name": "音视频联合 latent" }
-    }
+    "outputs": { "0": { "name": "融合图像" } }
   },
   "NetDebugNodeAny": {
     "display_name": "CK 网络环境诊断",
     "description": "在控制台和节点界面显示当前代理、镜像及相关网络环境设置，并透传输入。",
-    "inputs": {
-      "any_input": { "name": "任意输入" }
-    },
-    "outputs": {
-      "0": { "name": "透传输出" }
-    }
+    "inputs": { "any_input": { "name": "任意输入" } },
+    "outputs": { "0": { "name": "透传输出" } }
   },
   "TemporaryNetSettings": {
     "display_name": "CK 临时网络设置",
@@ -720,23 +132,14 @@
       "git_mirror": { "name": "Git/GitHub 镜像" },
       "huggingface_mirror": { "name": "Hugging Face 镜像" }
     },
-    "outputs": {
-      "0": { "name": "透传输出" }
-    }
+    "outputs": { "0": { "name": "透传输出" } }
   },
   "QwenVL_Local_Loader": {
     "display_name": "CK Qwen3-VL 本地加载器",
     "description": "从 models/prompt_generator 加载本地 Qwen3-VL 模型，对图片或视频执行视觉语言推理。",
     "inputs": {
       "model_name": { "name": "模型名称" },
-      "quantization": {
-        "name": "量化方式",
-        "options": {
-          "4-bit (VRAM-friendly)": "4 位（节省显存）",
-          "8-bit (Balanced)": "8 位（平衡）",
-          "None (FP16)": "不量化（FP16）"
-        }
-      },
+      "quantization": { "name": "量化方式", "options": { "4-bit (VRAM-friendly)": "4 位（节省显存）", "8-bit (Balanced)": "8 位（平衡）", "None (FP16)": "不量化（FP16）" } },
       "system_prompt": { "name": "系统提示词" },
       "user_prompt": { "name": "用户提示词" },
       "max_tokens": { "name": "最大生成 Token" },
@@ -746,18 +149,9 @@
       "seed": { "name": "随机种子" },
       "image": { "name": "图片" },
       "video": { "name": "视频帧" },
-      "attention_mode": {
-        "name": "注意力模式",
-        "options": {
-          "auto": "自动",
-          "flash_attention_2": "Flash Attention 2",
-          "sdpa": "PyTorch SDPA"
-        }
-      }
+      "attention_mode": { "name": "注意力模式", "options": { "auto": "自动", "flash_attention_2": "Flash Attention 2", "sdpa": "PyTorch SDPA" } }
     },
-    "outputs": {
-      "0": { "name": "回复" }
-    }
+    "outputs": { "0": { "name": "回复" } }
   },
   "SaveImageCK": {
     "display_name": "CK 保存图片与说明文本",
@@ -768,21 +162,9 @@
       "output_folder": { "name": "输出文件夹" },
       "caption_file_extension": { "name": "说明文件扩展名" },
       "caption": { "name": "说明文本" },
-      "encoding": {
-        "name": "文本编码",
-        "options": {
-          "utf-8": "UTF-8（推荐）",
-          "gbk": "GBK（简体中文旧软件）",
-          "utf-16": "UTF-16",
-          "ascii": "ASCII（仅英文）",
-          "shift_jis": "Shift-JIS（日文旧软件）",
-          "latin-1": "Latin-1（西欧旧软件）"
-        }
-      }
+      "encoding": { "name": "文本编码", "options": { "utf-8": "UTF-8（推荐）", "gbk": "GBK（简体中文旧软件）", "utf-16": "UTF-16", "ascii": "ASCII（仅英文）", "shift_jis": "Shift-JIS（日文旧软件）", "latin-1": "Latin-1（西欧旧软件）" } }
     },
-    "outputs": {
-      "0": { "name": "文件名" }
-    }
+    "outputs": { "0": { "name": "文件名" } }
   },
   "SimpleOpenAI_LLM": {
     "display_name": "CK OpenAI 兼容 LLM",
@@ -800,11 +182,7 @@
       "seed": { "name": "随机种子" },
       "images": { "name": "图片" }
     },
-    "outputs": {
-      "0": { "name": "正文" },
-      "1": { "name": "思考内容" },
-      "2": { "name": "原始响应" }
-    }
+    "outputs": { "0": { "name": "正文" }, "1": { "name": "思考内容" }, "2": { "name": "原始响应" } }
   },
   "SimpleClaude_LLM": {
     "display_name": "CK Claude LLM",
@@ -822,40 +200,26 @@
       "seed": { "name": "随机种子" },
       "images": { "name": "图片" }
     },
-    "outputs": {
-      "0": { "name": "正文" },
-      "1": { "name": "思考内容" },
-      "2": { "name": "原始响应" }
-    }
+    "outputs": { "0": { "name": "正文" }, "1": { "name": "思考内容" }, "2": { "name": "原始响应" } }
   },
   "TextLineCount": {
     "display_name": "CK 文本行数统计",
     "description": "统计文本行数，可选择忽略空行和只包含空格的行。",
-    "inputs": {
-      "text": { "name": "文本" },
-      "ignore_empty_lines": { "name": "忽略空行" }
-    },
-    "outputs": {
-      "0": { "name": "行数" }
-    }
+    "inputs": { "text": { "name": "文本" }, "ignore_empty_lines": { "name": "忽略空行" } },
+    "outputs": { "0": { "name": "行数" } }
   },
   "Text_Concatenate": {
     "display_name": "CK 文本拼接",
     "description": "使用指定分隔符拼接最多四段文本，并可自动清理首尾空白。",
     "inputs": {
       "delimiter": { "name": "分隔符" },
-      "clean_whitespace": {
-        "name": "清理首尾空白",
-        "options": { "true": "是", "false": "否" }
-      },
+      "clean_whitespace": { "name": "清理首尾空白", "options": { "true": "是", "false": "否" } },
       "text_a": { "name": "文本 A" },
       "text_b": { "name": "文本 B" },
       "text_c": { "name": "文本 C" },
       "text_d": { "name": "文本 D" }
     },
-    "outputs": {
-      "0": { "name": "拼接文本" }
-    }
+    "outputs": { "0": { "name": "拼接文本" } }
   },
   "VHS_VideoCombineIsolated": {
     "display_name": "CK 视频合成",
@@ -872,8 +236,6 @@
       "meta_batch": { "name": "VHS 批次管理器" },
       "vae": { "name": "VAE" }
     },
-    "outputs": {
-      "0": { "name": "输出文件信息" }
-    }
+    "outputs": { "0": { "name": "输出文件信息" } }
   }
 }
