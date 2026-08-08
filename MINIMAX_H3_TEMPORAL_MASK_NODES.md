@@ -7,7 +7,9 @@
 | `CK MiniMax H3 Video VAE Encode` | 将 IMAGE 批次作为视频帧编码成 H3 视频 latent |
 | `CK MiniMax H3 Trim Latent` | 按视频 latent T 截取，并同步截取音频 |
 | `CK MiniMax H3 Concat Latents` | 使用 H3 合法边界重叠拼接两个视频或 AV latent |
-| `CK MiniMax H3 Temporal Mask` | 创建视频时间遮罩，并可同步映射音频 |
+| `CK MiniMax H3 Temporal Mask` | 兼容节点：创建视频时间遮罩，并可同步映射音频 |
+| `CK MiniMax H3 Video Temporal Mask` | 按 video latent T 只修改视频遮罩 |
+| `CK MiniMax H3 Audio Temporal Mask` | 按 audio latent T 只修改音频遮罩 |
 | `CK MiniMax H3 Apply Video Mask` | 将逐帧像素 MASK 转换为视频 latent mask |
 | `CK MiniMax H3 Video VAE Encode Masked Noise` | 视频 VAE 编码时在 MASK 白色区域加入 latent 噪声 |
 
@@ -105,7 +107,15 @@ Fout = F1 + F2 - 5
 
 ## 6. 时间遮罩
 
-时间遮罩以 video latent T 区间表示：
+时间遮罩现在分为三种明确语义：
+
+| 节点 | 索引单位 | 修改范围 |
+|---|---|---|
+| `Video Temporal Mask` | video latent T | 只修改视频 mask，音频 mask 原样保留 |
+| `Audio Temporal Mask` | audio latent T（40 Hz） | 只修改音频 mask，视频 mask 原样保留 |
+| `Temporal Mask` | video latent T | 兼容旧工作流，可通过 `affect_audio` 同步映射音频 |
+
+区间统一使用左闭右开形式：
 
 ```text
 [start_index, end_index)
@@ -118,8 +128,15 @@ Fout = F1 + F2 - 5
 - 区间内强度。
 - 区间外强度。
 - 时间边界羽化。
-- 同步映射联合音频。
+- 纯视频、纯音频或联合 AV 的独立遮罩处理。
+- 兼容节点可同步映射联合音频。
 - 与已有遮罩替换、相乘、最大值或最小值组合。
+
+音频独立遮罩不再通过视频帧跨度换算，输入索引直接对应 40 Hz 音频 latent，因此例如：
+
+```text
+[40, 80) = 第 1 秒到第 2 秒
+```
 
 ## 7. 视频 Mask 到 Latent Mask
 

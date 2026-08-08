@@ -85,6 +85,46 @@ class MiniMaxH3TemporalTest(unittest.TestCase):
         self.assertTrue(torch.all(video_mask[:, :, :1] == 0))
         self.assertGreater(float(audio_mask.sum()), 0.0)
 
+    def test_video_temporal_mask_does_not_change_existing_audio_mask(self):
+        video = torch.zeros((1, 24, 7, 2, 2))
+        audio = torch.zeros((1, 32, 2, 37))
+        audio_mask = torch.full_like(audio, 0.25)
+        latent = {
+            "samples": MODULE.comfy.nested_tensor.NestedTensor((video, audio)),
+            "noise_mask": MODULE.comfy.nested_tensor.NestedTensor((torch.ones_like(video), audio_mask)),
+        }
+        output = MODULE.CKMiniMaxH3VideoTemporalMask.execute(
+            latent, 1, 3, 1.0, 0.0, 0, "replace"
+        ).result[0]
+        video_mask, output_audio_mask = output["noise_mask"].unbind()
+        self.assertTrue(torch.all(video_mask[:, :, 1:3] == 1))
+        self.assertTrue(torch.all(video_mask[:, :, :1] == 0))
+        self.assertIs(output_audio_mask, audio_mask)
+
+    def test_audio_temporal_mask_supports_audio_only_and_av(self):
+        audio = torch.zeros((1, 32, 2, 37))
+        audio_only = {"samples": audio}
+        output = MODULE.CKMiniMaxH3AudioTemporalMask.execute(
+            audio_only, 5, 10, 0.8, 0.1, 0, "replace"
+        ).result[0]
+        self.assertEqual(tuple(output["noise_mask"].shape), (1, 1, 2, 37))
+        self.assertTrue(torch.all(output["noise_mask"][..., 5:10] == 0.8))
+        self.assertTrue(torch.all(output["noise_mask"][..., :5] == 0.1))
+
+        video = torch.zeros((1, 24, 7, 2, 2))
+        video_mask = torch.full_like(video, 0.3)
+        av = {
+            "samples": MODULE.comfy.nested_tensor.NestedTensor((video, audio)),
+            "noise_mask": MODULE.comfy.nested_tensor.NestedTensor((video_mask, torch.zeros_like(audio))),
+        }
+        av_output = MODULE.CKMiniMaxH3AudioTemporalMask.execute(
+            av, 5, 10, 1.0, 0.0, 0, "replace"
+        ).result[0]
+        output_video_mask, output_audio_mask = av_output["noise_mask"].unbind()
+        self.assertIs(output_video_mask, video_mask)
+        self.assertTrue(torch.all(output_audio_mask[..., 5:10] == 1))
+        self.assertTrue(torch.all(output_audio_mask[..., :5] == 0))
+
     def test_apply_video_mask_preserves_audio_stream(self):
         video = torch.zeros((1, 24, 7, 2, 2))
         audio = torch.zeros((1, 32, 2, 37))

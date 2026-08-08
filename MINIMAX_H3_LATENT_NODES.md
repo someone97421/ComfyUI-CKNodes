@@ -13,7 +13,10 @@ CK Nodes/MiniMax H3/Latent
 | 节点 | 用途 |
 |---|---|
 | `CK MiniMax H3 Separate AV Latent` | 将联合 AV latent 分成视频和音频两个 latent |
-| `CK MiniMax H3 Combine AV Latent` | 将视频和音频 latent 重新组合成联合 AV latent |
+| `CK MiniMax H3 Combine AV Latent` | 合并音视频 latent，并可强制将音频长度对齐视频 |
+| `CK MiniMax H3 Audio VAE Encode` | 将 AUDIO 编码为 `[1,32,2,T]` H3 音频 latent |
+| `CK MiniMax H3 Empty Video Latent` | 创建合法尺寸和时长的空视频 latent |
+| `CK MiniMax H3 Empty Audio Latent` | 按音频 T、秒数或视频时长创建空音频 latent |
 | `CK MiniMax H3 Latent Resize` | 按目标分辨率或倍数缩放视频 latent，并自动对齐 H3 合法空间尺寸 |
 | `CK MiniMax H3 Image VAE Encode` | 使用 H3 视频 VAE 将图片编码成 `[1,24,1,H/16,W/16]` latent |
 | `CK MiniMax H3 Replace Video Latent By Index` | 按视频 latent 的时间索引替换一段 latent |
@@ -80,7 +83,70 @@ NestedTensor((video_noise_mask, audio_noise_mask))
 
 只有一个输入带 mask 时，另一个流会创建全 1 mask，表示该流正常参与去噪。
 
-合并节点不会擅自裁剪或补齐音频长度。需要先通过信息或换算节点确认视频和音频时长是否匹配。
+合并节点提供两种时间对齐方式：
+
+| 模式 | 行为 |
+|---|---|
+| `none` | 保持输入长度，不主动修改音频 |
+| `audio_to_video` | 根据视频 latent T 换算合法视频帧数，再按照 `FPS` 计算目标音频 T |
+
+强制对齐时：
+
+- 音频过长会从尾部裁剪。
+- 音频过短可补零 latent，或重复末尾 latent。
+- 已有音频 noise mask 会同步裁剪；新补区域的 mask 为 1，允许模型生成。
+- 视频 latent 和视频 mask 不变。
+
+## 3.1 音频 VAE 编码
+
+音频编码节点必须连接 MiniMax H3 音频 VAE。处理流程：
+
+```text
+AUDIO waveform
+  -> 选择 batch_index
+  -> 单声道复制为双声道 / 多声道取前两声道
+  -> 重采样到 H3 音频 VAE 的 32 kHz
+  -> 尾部补零到 800 个采样点的整数倍
+  -> VAE 编码
+  -> [1,32,2,T]
+```
+
+H3 音频 latent 频率固定为 40 Hz，因此：
+
+```text
+duration_seconds = audio_latent_t / 40
+```
+
+节点同时输出音频 latent T、时长和实际编码采样率。
+
+## 3.2 空视频与空音频 Latent
+
+空视频节点支持以下长度来源：
+
+- 视频帧数。
+- video latent T。
+- 秒数。
+
+视频时间自动对齐到：
+
+```text
+video_frames   = 17k + 5
+video_latent_t = 5k + 2
+```
+
+宽高自动对齐为 32 的倍数，输出形状为：
+
+```text
+[1,24,video_latent_t,height/16,width/16]
+```
+
+空音频节点支持 audio latent T、秒数、视频帧数和 video latent T。输出形状为：
+
+```text
+[1,32,2,audio_latent_t]
+```
+
+通过视频长度创建空音频时，会按指定 FPS 换算到 40 Hz 音频时间轴。
 
 ## 4. Latent 尺寸缩放
 

@@ -169,13 +169,118 @@
   },
   "CKMiniMaxH3CombineAVLatent": {
     "display_name": "CK MiniMax H3 合并音视频 Latent",
-    "description": "将 H3 视频 latent 和双声道音频 latent 合并成联合 AV NestedTensor。",
+    "description": "将 H3 视频 latent 和双声道音频 latent 合并成联合 AV NestedTensor，可选按视频时长强制对齐音频。",
     "inputs": {
       "video_latent": { "name": "视频 latent" },
-      "audio_latent": { "name": "音频 latent" }
+      "audio_latent": { "name": "音频 latent" },
+      "alignment_mode": {
+        "name": "时间对齐方式",
+        "options": {
+          "none": "不强制对齐",
+          "audio_to_video": "强制音频对齐视频"
+        }
+      },
+      "frame_rate": { "name": "视频帧率" },
+      "audio_pad_mode": {
+        "name": "音频不足时补齐方式",
+        "options": {
+          "zeros": "补零 latent",
+          "repeat_last": "重复末尾 latent"
+        }
+      }
     },
     "outputs": {
-      "0": { "name": "音视频联合 latent" }
+      "0": { "name": "音视频联合 latent" },
+      "1": { "name": "实际音频 latent T" }
+    }
+  },
+  "CKMiniMaxH3AudioVAEEncode": {
+    "display_name": "CK MiniMax H3 音频 VAE 编码",
+    "description": "使用 H3 音频 VAE 编码为双声道音频 latent，自动重采样到 32 kHz。",
+    "inputs": {
+      "audio": { "name": "音频" },
+      "audio_vae": { "name": "MiniMax H3 音频 VAE" },
+      "batch_index": { "name": "批次索引" }
+    },
+    "outputs": {
+      "0": { "name": "音频 latent" },
+      "1": { "name": "音频 latent T" },
+      "2": { "name": "时长（秒）" },
+      "3": { "name": "编码采样率" }
+    }
+  },
+  "CKMiniMaxH3EmptyVideoLatent": {
+    "display_name": "CK MiniMax H3 空视频 Latent",
+    "description": "创建合法的 H3 空视频 latent，自动对齐空间尺寸和视频时间序列。",
+    "inputs": {
+      "width": { "name": "宽度" },
+      "height": { "name": "高度" },
+      "length_type": {
+        "name": "长度类型",
+        "options": {
+          "video_frames": "视频帧数",
+          "video_latent_t": "视频 latent T",
+          "seconds": "秒数"
+        }
+      },
+      "length_value": { "name": "长度值" },
+      "frame_rate": { "name": "视频帧率" },
+      "temporal_align": {
+        "name": "时间合法值对齐",
+        "options": {
+          "up": "向上对齐",
+          "down": "向下对齐",
+          "nearest": "就近对齐",
+          "exact": "必须精确合法"
+        }
+      },
+      "spatial_align": {
+        "name": "空间合法值对齐",
+        "options": {
+          "nearest": "就近对齐",
+          "down": "向下对齐",
+          "up": "向上对齐",
+          "exact": "必须精确合法"
+        }
+      }
+    },
+    "outputs": {
+      "0": { "name": "空视频 latent" },
+      "1": { "name": "视频帧数" },
+      "2": { "name": "视频 latent T" },
+      "3": { "name": "实际宽度" },
+      "4": { "name": "实际高度" }
+    }
+  },
+  "CKMiniMaxH3EmptyAudioLatent": {
+    "display_name": "CK MiniMax H3 空音频 Latent",
+    "description": "按音频 T、秒数或视频时长创建 H3 双声道空音频 latent。",
+    "inputs": {
+      "length_type": {
+        "name": "长度类型",
+        "options": {
+          "audio_latent_t": "音频 latent T",
+          "seconds": "秒数",
+          "video_frames": "视频帧数",
+          "video_latent_t": "视频 latent T"
+        }
+      },
+      "length_value": { "name": "长度值" },
+      "frame_rate": { "name": "视频帧率" },
+      "temporal_align": {
+        "name": "视频时间合法值对齐",
+        "options": {
+          "up": "向上对齐",
+          "down": "向下对齐",
+          "nearest": "就近对齐",
+          "exact": "必须精确合法"
+        }
+      }
+    },
+    "outputs": {
+      "0": { "name": "空音频 latent" },
+      "1": { "name": "音频 latent T" },
+      "2": { "name": "时长（秒）" }
     }
   },
   "CKMiniMaxH3LatentResize": {
@@ -418,8 +523,8 @@
     }
   },
   "CKMiniMaxH3TemporalMask": {
-    "display_name": "CK MiniMax H3 时间遮罩",
-    "description": "按照 video latent T 区间创建 noise mask，并可同步映射到联合音频时间轴。",
+    "display_name": "CK MiniMax H3 音视频同步时间遮罩",
+    "description": "按照 video latent T 区间创建视频遮罩，并可同步映射到联合音频时间轴。",
     "inputs": {
       "latent": { "name": "目标 latent" },
       "start_index": { "name": "开始索引" },
@@ -441,6 +546,54 @@
     },
     "outputs": {
       "0": { "name": "带时间遮罩的 latent" }
+    }
+  },
+  "CKMiniMaxH3VideoTemporalMask": {
+    "display_name": "CK MiniMax H3 视频时间遮罩",
+    "description": "按视频 latent T 索引只修改视频 noise mask，联合 AV 的音频遮罩保持不变。",
+    "inputs": {
+      "latent": { "name": "视频或联合 AV latent" },
+      "start_index": { "name": "视频开始索引" },
+      "end_index": { "name": "视频结束索引（不含）", "tooltip": "设置为 0 时表示直到视频 latent 末尾。" },
+      "inside_strength": { "name": "区间内遮罩强度" },
+      "outside_strength": { "name": "区间外遮罩强度" },
+      "feather": { "name": "视频 latent 羽化长度" },
+      "combine_mode": {
+        "name": "与现有视频遮罩组合方式",
+        "options": {
+          "replace": "替换现有遮罩",
+          "multiply": "相乘",
+          "maximum": "取最大值",
+          "minimum": "取最小值"
+        }
+      }
+    },
+    "outputs": {
+      "0": { "name": "带视频时间遮罩的 latent" }
+    }
+  },
+  "CKMiniMaxH3AudioTemporalMask": {
+    "display_name": "CK MiniMax H3 音频时间遮罩",
+    "description": "按音频 latent T 索引只修改音频 noise mask，支持纯音频和联合 AV latent。",
+    "inputs": {
+      "latent": { "name": "音频或联合 AV latent" },
+      "start_index": { "name": "音频开始索引" },
+      "end_index": { "name": "音频结束索引（不含）", "tooltip": "设置为 0 时表示直到音频 latent 末尾。" },
+      "inside_strength": { "name": "区间内遮罩强度" },
+      "outside_strength": { "name": "区间外遮罩强度" },
+      "feather": { "name": "音频 latent 羽化长度" },
+      "combine_mode": {
+        "name": "与现有音频遮罩组合方式",
+        "options": {
+          "replace": "替换现有遮罩",
+          "multiply": "相乘",
+          "maximum": "取最大值",
+          "minimum": "取最小值"
+        }
+      }
+    },
+    "outputs": {
+      "0": { "name": "带音频时间遮罩的 latent" }
     }
   },
   "CKMiniMaxH3ApplyVideoMask": {

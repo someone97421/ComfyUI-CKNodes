@@ -38,6 +38,9 @@ CK Nodes
 
 - `CKMiniMaxH3SeparateAVLatent`
 - `CKMiniMaxH3CombineAVLatent`
+- `CKMiniMaxH3AudioVAEEncode`
+- `CKMiniMaxH3EmptyVideoLatent`
+- `CKMiniMaxH3EmptyAudioLatent`
 - `CKMiniMaxH3LatentResize`
 - `CKMiniMaxH3ImageVAEEncode`
 - `CKMiniMaxH3ReplaceVideoLatentByIndex`
@@ -54,6 +57,8 @@ CK Nodes
 ### MiniMax H3 / Mask
 
 - `CKMiniMaxH3TemporalMask`
+- `CKMiniMaxH3VideoTemporalMask`
+- `CKMiniMaxH3AudioTemporalMask`
 - `CKMiniMaxH3ApplyVideoMask`
 
 ### Video / LTXV

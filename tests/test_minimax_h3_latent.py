@@ -17,6 +17,17 @@ class FakeH3VAE:
         return torch.zeros((batch, 24, 1, height // 16, width // 16), dtype=image.dtype)
 
 
+class FakeH3AudioVAE:
+    audio_sample_rate = 32000
+    downscale_ratio = 800
+
+    def encode(self, waveform):
+        batch, samples, channels = waveform.shape
+        self.last_input_shape = tuple(waveform.shape)
+        latent_t = (samples + 799) // 800
+        return torch.zeros((batch, 32, channels, latent_t), dtype=waveform.dtype)
+
+
 class MiniMaxH3LatentHelpersTest(unittest.TestCase):
     def test_frame_latent_roundtrip(self):
         for frames, latent_t in ((5, 2), (22, 7), (124, 37), (362, 107)):
@@ -67,6 +78,56 @@ class MiniMaxH3LatentHelpersTest(unittest.TestCase):
         self.assertIs(masks[0], video_mask)
         self.assertIs(masks[1], audio_mask)
         self.assertEqual(combined["custom"], "kept")
+
+    def test_combine_can_force_audio_to_video_length(self):
+        video = {"samples": torch.zeros((1, 24, 7, 4, 6))}
+        short_audio = torch.ones((1, 32, 2, 10))
+        short_mask = torch.zeros_like(short_audio)
+        audio = {"samples": short_audio, "noise_mask": short_mask}
+
+        output, audio_t = MODULE.CKMiniMaxH3CombineAVLatent.execute(
+            video, audio, "audio_to_video", 24.0, "zeros"
+        ).result
+        _, output_audio = output["samples"].unbind()
+        _, output_audio_mask = output["noise_mask"].unbind()
+        self.assertEqual(audio_t, 37)
+        self.assertEqual(tuple(output_audio.shape), (1, 32, 2, 37))
+        self.assertTrue(torch.all(output_audio[..., :10] == 1))
+        self.assertTrue(torch.all(output_audio[..., 10:] == 0))
+        self.assertTrue(torch.all(output_audio_mask[..., :10] == 0))
+        self.assertTrue(torch.all(output_audio_mask[..., 10:] == 1))
+
+        long_audio = {"samples": torch.ones((1, 32, 2, 50))}
+        cropped, cropped_t = MODULE.CKMiniMaxH3CombineAVLatent.execute(
+            video, long_audio, "audio_to_video", 24.0, "repeat_last"
+        ).result
+        self.assertEqual(cropped_t, 37)
+        self.assertEqual(cropped["samples"].unbind()[1].shape[-1], 37)
+
+    def test_audio_vae_encode_normalizes_to_stereo(self):
+        vae = FakeH3AudioVAE()
+        audio = {"waveform": torch.zeros((2, 1, 3201)), "sample_rate": 32000}
+        output, audio_t, duration, sample_rate = MODULE.CKMiniMaxH3AudioVAEEncode.execute(
+            audio, vae, 1
+        ).result
+        self.assertEqual(vae.last_input_shape, (1, 4000, 2))
+        self.assertEqual(tuple(output["samples"].shape), (1, 32, 2, 5))
+        self.assertEqual((audio_t, sample_rate), (5, 32000))
+        self.assertAlmostEqual(duration, 0.125)
+
+    def test_empty_video_and_audio_latents(self):
+        video, frames, video_t, width, height = MODULE.CKMiniMaxH3EmptyVideoLatent.execute(
+            1000, 570, "video_frames", 125, 24.0, "up", "nearest"
+        ).result
+        self.assertEqual((frames, video_t, width, height), (141, 42, 992, 576))
+        self.assertEqual(tuple(video["samples"].shape), (1, 24, 42, 36, 62))
+
+        audio, audio_t, duration = MODULE.CKMiniMaxH3EmptyAudioLatent.execute(
+            "video_latent_t", 37, 24.0, "exact"
+        ).result
+        self.assertEqual(audio_t, 207)
+        self.assertEqual(tuple(audio["samples"].shape), (1, 32, 2, 207))
+        self.assertAlmostEqual(duration, 207 / 40)
 
     def test_replace_video_slice_keeps_audio(self):
         video = torch.zeros((1, 24, 7, 4, 6))

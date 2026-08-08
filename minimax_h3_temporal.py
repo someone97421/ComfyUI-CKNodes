@@ -446,7 +446,7 @@ class CKMiniMaxH3TemporalMask(io.ComfyNode):
         return io.Schema(
             node_id="CKMiniMaxH3TemporalMask",
             display_name="CK MiniMax H3 Temporal Mask",
-            description="按 video latent T 区间创建时间 noise mask，可同步映射到联合音频时间轴。",
+            description="按 video latent T 区间创建音视频同步 noise mask；需要独立处理时请使用视频或音频时间遮罩节点。",
             category="CK Nodes/MiniMax H3/Mask",
             inputs=[
                 io.Latent.Input("latent"),
@@ -519,6 +519,115 @@ class CKMiniMaxH3TemporalMask(io.ComfyNode):
         else:
             output["samples"] = video
             output["noise_mask"] = output_video_mask
+        return io.NodeOutput(output)
+
+
+class CKMiniMaxH3VideoTemporalMask(io.ComfyNode):
+    @classmethod
+    def define_schema(cls):
+        return io.Schema(
+            node_id="CKMiniMaxH3VideoTemporalMask",
+            display_name="CK MiniMax H3 Video Temporal Mask",
+            description="按视频 latent T 索引只修改视频 noise mask；联合 AV 中的音频 mask 保持不变。",
+            category="CK Nodes/MiniMax H3/Mask",
+            inputs=[
+                io.Latent.Input("latent"),
+                io.Int.Input("start_index", default=0, min=0, max=0x7FFFFFFF, step=1),
+                io.Int.Input("end_index", default=0, min=0, max=0x7FFFFFFF, step=1,
+                             tooltip="0 表示直到视频 latent 末尾；其他值为不包含的结束索引。"),
+                io.Float.Input("inside_strength", default=1.0, min=0.0, max=1.0, step=0.01),
+                io.Float.Input("outside_strength", default=0.0, min=0.0, max=1.0, step=0.01),
+                io.Int.Input("feather", default=0, min=0, max=4096, step=1),
+                io.Combo.Input("combine_mode", options=["replace", "multiply", "maximum", "minimum"], default="replace"),
+            ],
+            outputs=[io.Latent.Output(display_name="latent")],
+        )
+
+    @classmethod
+    def execute(cls, latent, start_index, end_index, inside_strength, outside_strength, feather, combine_mode):
+        video, audio, is_av = split_latent_streams(latent)
+        if video is None:
+            raise ValueError("latent 中没有视频流")
+        validate_video_tensor(video)
+        video_t = video.shape[2]
+        end_index = video_t if end_index == 0 else end_index
+        if not 0 <= start_index < end_index <= video_t:
+            raise ValueError(f"视频时间遮罩区间必须满足 0 <= start < end <= {video_t}")
+
+        vector = CKMiniMaxH3TemporalMask.interval_mask(
+            video_t, start_index, end_index, inside_strength, outside_strength,
+            feather, video.device, video.dtype,
+        )
+        generated = vector.view(1, 1, video_t, 1, 1).repeat(video.shape[0], 1, 1, 1, 1)
+        video_mask, audio_mask = split_noise_masks(latent, is_av)
+        video_mask = combine_mask(video_mask, generated, combine_mode)
+
+        output = latent.copy()
+        output.pop("noise_mask", None)
+        if is_av:
+            validate_audio_tensor(audio)
+            output["samples"] = comfy.nested_tensor.NestedTensor((video, audio))
+            output["noise_mask"] = build_av_noise_mask(video, audio, video_mask, audio_mask)
+        else:
+            output["samples"] = video
+            output["noise_mask"] = video_mask
+        return io.NodeOutput(output)
+
+
+class CKMiniMaxH3AudioTemporalMask(io.ComfyNode):
+    @classmethod
+    def define_schema(cls):
+        return io.Schema(
+            node_id="CKMiniMaxH3AudioTemporalMask",
+            display_name="CK MiniMax H3 Audio Temporal Mask",
+            description="按音频 latent T 索引只修改音频 noise mask；支持纯音频和联合 AV latent。",
+            category="CK Nodes/MiniMax H3/Mask",
+            inputs=[
+                io.Latent.Input("latent"),
+                io.Int.Input("start_index", default=0, min=0, max=0x7FFFFFFF, step=1),
+                io.Int.Input("end_index", default=0, min=0, max=0x7FFFFFFF, step=1,
+                             tooltip="0 表示直到音频 latent 末尾；其他值为不包含的结束索引。"),
+                io.Float.Input("inside_strength", default=1.0, min=0.0, max=1.0, step=0.01),
+                io.Float.Input("outside_strength", default=0.0, min=0.0, max=1.0, step=0.01),
+                io.Int.Input("feather", default=0, min=0, max=16384, step=1),
+                io.Combo.Input("combine_mode", options=["replace", "multiply", "maximum", "minimum"], default="replace"),
+            ],
+            outputs=[io.Latent.Output(display_name="latent")],
+        )
+
+    @classmethod
+    def execute(cls, latent, start_index, end_index, inside_strength, outside_strength, feather, combine_mode):
+        video, audio, is_av = split_latent_streams(latent)
+        if audio is None:
+            raise ValueError("latent 中没有音频流")
+        validate_audio_tensor(audio)
+        audio_t = audio.shape[-1]
+        end_index = audio_t if end_index == 0 else end_index
+        if not 0 <= start_index < end_index <= audio_t:
+            raise ValueError(f"音频时间遮罩区间必须满足 0 <= start < end <= {audio_t}")
+
+        vector = CKMiniMaxH3TemporalMask.interval_mask(
+            audio_t, start_index, end_index, inside_strength, outside_strength,
+            feather, audio.device, audio.dtype,
+        )
+        generated = vector.view(1, 1, 1, audio_t).repeat(audio.shape[0], 1, audio.shape[2], 1)
+
+        if is_av:
+            video_mask, audio_mask = split_noise_masks(latent, True)
+        else:
+            video_mask = None
+            audio_mask = latent.get("noise_mask")
+        audio_mask = combine_mask(audio_mask, generated, combine_mode)
+
+        output = latent.copy()
+        output.pop("noise_mask", None)
+        if is_av:
+            validate_video_tensor(video)
+            output["samples"] = comfy.nested_tensor.NestedTensor((video, audio))
+            output["noise_mask"] = build_av_noise_mask(video, audio, video_mask, audio_mask)
+        else:
+            output["samples"] = audio
+            output["noise_mask"] = audio_mask
         return io.NodeOutput(output)
 
 
@@ -641,6 +750,8 @@ NODE_CLASS_MAPPINGS = {
     "CKMiniMaxH3TrimLatent": CKMiniMaxH3TrimLatent,
     "CKMiniMaxH3ConcatLatents": CKMiniMaxH3ConcatLatents,
     "CKMiniMaxH3TemporalMask": CKMiniMaxH3TemporalMask,
+    "CKMiniMaxH3VideoTemporalMask": CKMiniMaxH3VideoTemporalMask,
+    "CKMiniMaxH3AudioTemporalMask": CKMiniMaxH3AudioTemporalMask,
     "CKMiniMaxH3ApplyVideoMask": CKMiniMaxH3ApplyVideoMask,
     "CKMiniMaxH3VideoVAEEncodeMaskedNoise": CKMiniMaxH3VideoVAEEncodeMaskedNoise,
 }
@@ -651,6 +762,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "CKMiniMaxH3TrimLatent": "CK MiniMax H3 Trim Latent",
     "CKMiniMaxH3ConcatLatents": "CK MiniMax H3 Concat Latents",
     "CKMiniMaxH3TemporalMask": "CK MiniMax H3 Temporal Mask",
+    "CKMiniMaxH3VideoTemporalMask": "CK MiniMax H3 Video Temporal Mask",
+    "CKMiniMaxH3AudioTemporalMask": "CK MiniMax H3 Audio Temporal Mask",
     "CKMiniMaxH3ApplyVideoMask": "CK MiniMax H3 Apply Video Mask",
     "CKMiniMaxH3VideoVAEEncodeMaskedNoise": "CK MiniMax H3 Video VAE Encode Masked Noise",
 }

@@ -1,7 +1,9 @@
 import math
 
 import torch
+import torchaudio
 
+import comfy.model_management
 import comfy.nested_tensor
 import comfy.utils
 from comfy_api.latest import io
@@ -126,6 +128,45 @@ def frames_to_audio_latent_t(frame_count, frame_rate):
     if frame_rate <= 0:
         raise ValueError("frame_rate 必须大于 0")
     return int(round(float(frame_count) / float(frame_rate) * AUDIO_LATENT_FPS))
+
+
+def fit_tensor_length(tensor, target_length, dim, pad_mode="zeros", pad_value=0.0):
+    """沿指定维度裁剪或补齐 Tensor，不修改已经匹配的输入。"""
+    current_length = tensor.shape[dim]
+    if target_length < 1:
+        raise ValueError("目标长度必须至少为 1")
+    if current_length == target_length:
+        return tensor
+    if current_length > target_length:
+        return tensor.narrow(dim, 0, target_length)
+
+    pad_shape = list(tensor.shape)
+    pad_shape[dim] = target_length - current_length
+    if pad_mode == "repeat_last":
+        index = [slice(None)] * tensor.ndim
+        index[dim] = slice(current_length - 1, current_length)
+        repeats = [1] * tensor.ndim
+        repeats[dim] = pad_shape[dim]
+        padding = tensor[tuple(index)].repeat(*repeats)
+    elif pad_mode == "zeros":
+        padding = torch.full(pad_shape, pad_value, dtype=tensor.dtype, device=tensor.device)
+    else:
+        raise ValueError(f"不支持的补齐方式：{pad_mode}")
+    return torch.cat((tensor, padding), dim=dim)
+
+
+def calculate_empty_audio_length(source_type, value, frame_rate=24.0, align_mode="up"):
+    if not math.isfinite(value) or value <= 0:
+        raise ValueError("长度值必须是大于 0 的有限数字")
+    if source_type == "audio_latent_t":
+        audio_t = max(1, int(round(value)))
+    elif source_type == "seconds":
+        audio_t = max(1, int(round(value * AUDIO_LATENT_FPS)))
+    elif source_type in ("video_frames", "video_latent_t"):
+        audio_t = convert_h3_time(source_type, value, frame_rate, align_mode)["audio_latent_t"]
+    else:
+        raise ValueError(f"不支持的音频长度类型：{source_type}")
+    return audio_t, audio_t / AUDIO_LATENT_FPS
 
 
 def validate_video_tensor(video, name="视频 latent", require_h3_channels=True):
@@ -332,16 +373,41 @@ class CKMiniMaxH3CombineAVLatent(io.ComfyNode):
             inputs=[
                 io.Latent.Input("video_latent"),
                 io.Latent.Input("audio_latent"),
+                io.Combo.Input(
+                    "alignment_mode",
+                    options=["none", "audio_to_video"],
+                    default="none",
+                    tooltip="audio_to_video 会按视频 latent 对应的帧数和 FPS 强制裁剪或补齐音频。",
+                ),
+                io.Float.Input("frame_rate", default=24.0, min=0.01, max=240.0, step=0.01),
+                io.Combo.Input(
+                    "audio_pad_mode",
+                    options=["zeros", "repeat_last"],
+                    default="zeros",
+                ),
             ],
-            outputs=[io.Latent.Output(display_name="av_latent")],
+            outputs=[
+                io.Latent.Output(display_name="av_latent"),
+                io.Int.Output(display_name="audio_latent_t"),
+            ],
         )
 
     @classmethod
-    def execute(cls, video_latent, audio_latent):
+    def execute(cls, video_latent, audio_latent, alignment_mode="none", frame_rate=24.0, audio_pad_mode="zeros"):
         video, video_mask = extract_video_stream(video_latent, "video_latent")
         audio, audio_mask = extract_audio_stream(audio_latent, "audio_latent")
         if video.shape[0] != audio.shape[0]:
             raise ValueError(f"视频 batch={video.shape[0]}，音频 batch={audio.shape[0]}，无法合并")
+
+        if alignment_mode == "audio_to_video":
+            video_frames = video_latent_t_to_frames(video.shape[2])
+            target_audio_t = frames_to_audio_latent_t(video_frames, frame_rate)
+            audio = fit_tensor_length(audio, target_audio_t, -1, audio_pad_mode)
+            if audio_mask is not None:
+                # 新补出的音频区域使用 1，确保采样时允许模型生成。
+                audio_mask = fit_tensor_length(audio_mask, target_audio_t, -1, "zeros", pad_value=1.0)
+        elif alignment_mode != "none":
+            raise ValueError(f"不支持的 alignment_mode：{alignment_mode}")
 
         output = video_latent.copy()
         for key, value in audio_latent.items():
@@ -352,7 +418,167 @@ class CKMiniMaxH3CombineAVLatent(io.ComfyNode):
         combined_mask = build_av_noise_mask(video, audio, video_mask, audio_mask)
         if combined_mask is not None:
             output["noise_mask"] = combined_mask
-        return io.NodeOutput(output)
+        output["ck_minimax_h3_frame_rate"] = float(frame_rate)
+        output["ck_minimax_h3_audio_alignment"] = alignment_mode
+        return io.NodeOutput(output, audio.shape[-1])
+
+
+class CKMiniMaxH3AudioVAEEncode(io.ComfyNode):
+    @classmethod
+    def define_schema(cls):
+        return io.Schema(
+            node_id="CKMiniMaxH3AudioVAEEncode",
+            display_name="CK MiniMax H3 Audio VAE Encode",
+            description="使用 H3 音频 VAE 将音频编码为 [1,32,2,T] latent；自动重采样到 32 kHz 并规范为双声道。",
+            category="CK Nodes/MiniMax H3/Latent",
+            inputs=[
+                io.Audio.Input("audio"),
+                io.Vae.Input("audio_vae"),
+                io.Int.Input("batch_index", default=0, min=0, max=0x7FFFFFFF, step=1),
+            ],
+            outputs=[
+                io.Latent.Output(display_name="audio_latent"),
+                io.Int.Output(display_name="audio_latent_t"),
+                io.Float.Output(display_name="duration_seconds"),
+                io.Int.Output(display_name="sample_rate"),
+            ],
+        )
+
+    @classmethod
+    def execute(cls, audio, audio_vae, batch_index):
+        if audio is None or "waveform" not in audio or "sample_rate" not in audio:
+            raise ValueError("audio 必须包含 waveform 和 sample_rate")
+        waveform = audio["waveform"]
+        if not isinstance(waveform, torch.Tensor) or waveform.ndim != 3:
+            raise ValueError("audio waveform 必须是 [B,C,L] 三维张量")
+        if waveform.shape[0] < 1 or waveform.shape[-1] < 1:
+            raise ValueError("audio waveform 为空")
+        if batch_index >= waveform.shape[0]:
+            raise ValueError(f"batch_index={batch_index} 超出音频 batch={waveform.shape[0]}")
+
+        waveform = waveform[batch_index:batch_index + 1]
+        if waveform.shape[1] == 1:
+            waveform = waveform.repeat(1, 2, 1)
+        elif waveform.shape[1] > 2:
+            waveform = waveform[:, :2]
+        elif waveform.shape[1] != 2:
+            raise ValueError(f"不支持的音频声道数：{waveform.shape[1]}")
+
+        source_rate = int(audio["sample_rate"])
+        target_rate = int(getattr(audio_vae, "audio_sample_rate", 32000))
+        if source_rate <= 0 or target_rate <= 0:
+            raise ValueError("音频采样率必须大于 0")
+        if source_rate != target_rate:
+            waveform = torchaudio.functional.resample(waveform, source_rate, target_rate)
+
+        samples_per_latent = int(getattr(audio_vae, "downscale_ratio", 800))
+        if samples_per_latent < 1:
+            samples_per_latent = 800
+        right_pad = (-waveform.shape[-1]) % samples_per_latent
+        if right_pad:
+            waveform = torch.nn.functional.pad(waveform, (0, right_pad))
+
+        encoded = audio_vae.encode(waveform.movedim(1, -1))
+        validate_audio_tensor(encoded, "H3 音频 VAE 编码结果")
+        if encoded.shape[0] != 1:
+            raise ValueError(f"H3 音频编码结果必须是 batch 1，当前为 {encoded.shape[0]}")
+        output = {
+            "samples": encoded,
+            "ck_minimax_h3_kind": "audio",
+            "ck_minimax_h3_source": "audio_vae_encode",
+            "ck_minimax_h3_audio_sample_rate": target_rate,
+        }
+        return io.NodeOutput(output, encoded.shape[-1], encoded.shape[-1] / AUDIO_LATENT_FPS, target_rate)
+
+
+class CKMiniMaxH3EmptyVideoLatent(io.ComfyNode):
+    @classmethod
+    def define_schema(cls):
+        return io.Schema(
+            node_id="CKMiniMaxH3EmptyVideoLatent",
+            display_name="CK MiniMax H3 Empty Video Latent",
+            description="创建合法的 H3 空视频 latent，宽高自动对齐到 32 像素，时间自动对齐到 17k+5 帧。",
+            category="CK Nodes/MiniMax H3/Latent",
+            inputs=[
+                io.Int.Input("width", default=1344, min=1, max=0x7FFFFFFF, step=1),
+                io.Int.Input("height", default=768, min=1, max=0x7FFFFFFF, step=1),
+                io.Combo.Input(
+                    "length_type",
+                    options=["video_frames", "video_latent_t", "seconds"],
+                    default="video_frames",
+                ),
+                io.Float.Input("length_value", default=124.0, min=0.001, max=1000000.0, step=0.01),
+                io.Float.Input("frame_rate", default=24.0, min=0.01, max=240.0, step=0.01),
+                io.Combo.Input("temporal_align", options=["up", "down", "nearest", "exact"], default="up"),
+                io.Combo.Input("spatial_align", options=["nearest", "down", "up", "exact"], default="nearest"),
+            ],
+            outputs=[
+                io.Latent.Output(display_name="video_latent"),
+                io.Int.Output(display_name="video_frames"),
+                io.Int.Output(display_name="video_latent_t"),
+                io.Int.Output(display_name="width"),
+                io.Int.Output(display_name="height"),
+            ],
+        )
+
+    @classmethod
+    def execute(cls, width, height, length_type, length_value, frame_rate, temporal_align, spatial_align):
+        dimensions = convert_h3_time(length_type, length_value, frame_rate, temporal_align)
+        width = align_spatial_pixels(width, spatial_align)
+        height = align_spatial_pixels(height, spatial_align)
+        video = torch.zeros(
+            (1, VIDEO_CHANNELS, dimensions["video_latent_t"], height // H3_SPATIAL_DOWNSCALE, width // H3_SPATIAL_DOWNSCALE),
+            device=comfy.model_management.intermediate_device(),
+        )
+        output = {
+            "samples": video,
+            "ck_minimax_h3_kind": "video",
+            "ck_minimax_h3_source": "empty_video",
+            "ck_minimax_h3_frame_count": dimensions["video_frames"],
+            "ck_minimax_h3_frame_rate": float(frame_rate),
+        }
+        return io.NodeOutput(output, dimensions["video_frames"], dimensions["video_latent_t"], width, height)
+
+
+class CKMiniMaxH3EmptyAudioLatent(io.ComfyNode):
+    @classmethod
+    def define_schema(cls):
+        return io.Schema(
+            node_id="CKMiniMaxH3EmptyAudioLatent",
+            display_name="CK MiniMax H3 Empty Audio Latent",
+            description="按音频 T、秒数或视频时长创建 [1,32,2,T] H3 空音频 latent。",
+            category="CK Nodes/MiniMax H3/Latent",
+            inputs=[
+                io.Combo.Input(
+                    "length_type",
+                    options=["audio_latent_t", "seconds", "video_frames", "video_latent_t"],
+                    default="audio_latent_t",
+                ),
+                io.Float.Input("length_value", default=207.0, min=0.001, max=1000000.0, step=0.01),
+                io.Float.Input("frame_rate", default=24.0, min=0.01, max=240.0, step=0.01),
+                io.Combo.Input("temporal_align", options=["up", "down", "nearest", "exact"], default="up"),
+            ],
+            outputs=[
+                io.Latent.Output(display_name="audio_latent"),
+                io.Int.Output(display_name="audio_latent_t"),
+                io.Float.Output(display_name="duration_seconds"),
+            ],
+        )
+
+    @classmethod
+    def execute(cls, length_type, length_value, frame_rate, temporal_align):
+        audio_t, duration = calculate_empty_audio_length(length_type, length_value, frame_rate, temporal_align)
+        audio = torch.zeros(
+            (1, AUDIO_CHANNELS, AUDIO_STEREO_CHANNELS, audio_t),
+            device=comfy.model_management.intermediate_device(),
+        )
+        output = {
+            "samples": audio,
+            "ck_minimax_h3_kind": "audio",
+            "ck_minimax_h3_source": "empty_audio",
+            "ck_minimax_h3_frame_rate": float(frame_rate),
+        }
+        return io.NodeOutput(output, audio_t, duration)
 
 
 class CKMiniMaxH3LatentResize(io.ComfyNode):
@@ -837,6 +1063,9 @@ class CKMiniMaxH3TimeConvert(io.ComfyNode):
 NODE_CLASS_MAPPINGS = {
     "CKMiniMaxH3SeparateAVLatent": CKMiniMaxH3SeparateAVLatent,
     "CKMiniMaxH3CombineAVLatent": CKMiniMaxH3CombineAVLatent,
+    "CKMiniMaxH3AudioVAEEncode": CKMiniMaxH3AudioVAEEncode,
+    "CKMiniMaxH3EmptyVideoLatent": CKMiniMaxH3EmptyVideoLatent,
+    "CKMiniMaxH3EmptyAudioLatent": CKMiniMaxH3EmptyAudioLatent,
     "CKMiniMaxH3LatentResize": CKMiniMaxH3LatentResize,
     "CKMiniMaxH3ImageVAEEncode": CKMiniMaxH3ImageVAEEncode,
     "CKMiniMaxH3ReplaceVideoLatentByIndex": CKMiniMaxH3ReplaceVideoLatentByIndex,
@@ -848,6 +1077,9 @@ NODE_CLASS_MAPPINGS = {
 NODE_DISPLAY_NAME_MAPPINGS = {
     "CKMiniMaxH3SeparateAVLatent": "CK MiniMax H3 Separate AV Latent",
     "CKMiniMaxH3CombineAVLatent": "CK MiniMax H3 Combine AV Latent",
+    "CKMiniMaxH3AudioVAEEncode": "CK MiniMax H3 Audio VAE Encode",
+    "CKMiniMaxH3EmptyVideoLatent": "CK MiniMax H3 Empty Video Latent",
+    "CKMiniMaxH3EmptyAudioLatent": "CK MiniMax H3 Empty Audio Latent",
     "CKMiniMaxH3LatentResize": "CK MiniMax H3 Latent Resize",
     "CKMiniMaxH3ImageVAEEncode": "CK MiniMax H3 Image VAE Encode",
     "CKMiniMaxH3ReplaceVideoLatentByIndex": "CK MiniMax H3 Replace Video Latent By Index",
