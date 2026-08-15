@@ -35,6 +35,7 @@ MiniMax H3 节点已迁移到独立的 `minimax_h3_tools` 节点包。该套件�
 ### Video / Batch
 
 - `ExtractFramesFromBatch`
+- `CKMatchBatchFrameRate`
 
 ### Video / Output
 

@@ -47,6 +47,19 @@
       "0": { "name": "提取后的帧" }
     }
   },
+  "CKMatchBatchFrameRate": {
+    "display_name": "CK 批次帧率匹配抽帧",
+    "description": "依据输入和输出 FPS，在时间轴上自动匹配最接近的源帧，避免固定间隔抽帧造成累计漂移。",
+    "inputs": {
+      "images": { "name": "输入帧批次", "tooltip": "按时间顺序排列的输入帧批次。" },
+      "input_fps": { "name": "输入 FPS", "tooltip": "输入帧序列原本对应的帧率。" },
+      "output_fps": { "name": "输出 FPS", "tooltip": "希望输出帧序列对应的帧率。高于输入 FPS 时会重复帧。" }
+    },
+    "outputs": {
+      "0": { "name": "匹配后的帧" },
+      "1": { "name": "匹配信息" }
+    }
+  },
   "Text_Load_From_File": {
     "display_name": "CK 从文件加载文本",
     "description": "读取 UTF-8 文本文件，忽略以 # 开头的注释行，并同时输出全文和行字典。",

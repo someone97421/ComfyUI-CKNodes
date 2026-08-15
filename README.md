@@ -29,6 +29,7 @@ MiniMax H3 节点已迁移到独立套件 `minimax_h3_tools`。原有 MiniMax H3
 |---|---|---|
 | **AnyNullNode** | 任意类型空值、占位和断开连接工具 | 工具节点 |
 | **ExtractFrames** | 从 IMAGE batch 的开头或结尾提取指定数量帧 | 视频帧处理 |
+| **Match Batch Frame Rate** | 根据输入/输出 FPS 沿时间轴自动匹配抽帧，并输出帧数、时长与索引信息 | 支持降帧及重复帧升帧，不做插值 |
 | **LTXV Context (Forward/Reverse)** | 将相邻视频片段的首尾帧编码并注入 LTXV latent | 支持前向和反向衔接 |
 | **LoadTextFile** | 从路径读取文本文件并输出字符串 | 来源见源码 |
 | **MaskBorderDrawer** | 绘制和处理遮罩边界 | 图像/遮罩工具 |
