@@ -1,5 +1,10 @@
 # ComfyUI-CKNodes
 
+> [!WARNING]
+> 本套工具由非专业人士 vibe coding 开发，仅供测试使用，如遇报错请及时卸载或提 Issues 联系我哦~。
+>
+> This toolset was created by a non-professional through vibe coding and is intended for testing only. If you encounter errors, please uninstall it promptly or contact me by opening an Issue.
+
 个人使用的 ComfyUI 节点合集。部分节点来自其他项目并保留来源说明，部分为实验性工具，接口和行为可能随实际工作流调整。
 
 # MiniMax H3 节点已迁移
