@@ -8,8 +8,7 @@
 CK Nodes
 ├─ Video
 │  ├─ LTXV
-│  ├─ Batch
-│  └─ Output
+│  └─ Batch
 ├─ Image
 │  ├─ Mask
 │  ├─ Composition
@@ -17,8 +16,7 @@ CK Nodes
 ├─ Text
 ├─ Logic
 ├─ AI
-│  ├─ LLM
-│  └─ Vision Language
+│  └─ LLM
 └─ System
    └─ Network
 ```
@@ -36,10 +34,6 @@ MiniMax H3 节点已迁移到独立的 `minimax_h3_tools` 节点包。该套件�
 
 - `ExtractFramesFromBatch`
 - `CKMatchBatchFrameRate`
-
-### Video / Output
-
-- `VHS_VideoCombineIsolated`
 
 ### Image / Mask
 
@@ -70,10 +64,6 @@ MiniMax H3 节点已迁移到独立的 `minimax_h3_tools` 节点包。该套件�
 - `SimpleOpenAI_LLM`
 - `SimpleClaude_LLM`
 
-### AI / Vision Language
-
-- `QwenVL_Local_Loader`
-
 ### System / Network
 
 - `TemporaryNetSettings`
@@ -99,20 +89,3 @@ locales/zh/nodeDefs.json
 - Combo 枚举选项。
 
 枚举翻译只改变前端显示，工作流中仍保存后端真实值，因此切换语言不会改变执行逻辑。
-
-## 4. Video Combine 依赖
-
-`VHS_VideoCombineIsolated` 不再维护一份残缺的 VideoHelperSuite 源码副本，而是继承已安装的 `comfyui-VideoHelperSuite` 节点实现。
-
-如果未安装 VideoHelperSuite，节点加载时会输出明确的缺失依赖错误。
-
-## 5. Qwen3-VL Transformers 兼容
-
-本地 Transformers 5.x 已移除 `AutoModelForVision2Seq` 导出，因此加载器采用兼容逻辑：
-
-```text
-Transformers 5.x -> AutoModelForImageTextToText
-Transformers 4.x -> AutoModelForVision2Seq
-```
-
-节点 ID 和模型调用方式保持不变。

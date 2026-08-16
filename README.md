@@ -35,7 +35,6 @@ MiniMax H3 节点已迁移到独立套件 `minimax_h3_tools`。原有 MiniMax H3
 | **MaskBorderDrawer** | 绘制和处理遮罩边界 | 图像/遮罩工具 |
 | **Net-Debug** | 网络请求调试工具 | 调试节点 |
 | **NetSettings** | 网络请求相关设置 | 调试节点 |
-| **QwenVL Local Loader** | 本地加载 Qwen-VL/Qwen3-VL，用于图像理解 | 改自 1038lab/ComfyUI-QwenVL |
 | **SaveImageCK** | 支持多种编码格式的增强图像保存 | 改自 SaveImageKJ |
 | **Simple LLM Assistant** | 简易 LLM 提示词处理、翻译和问答 | 需要对应模型或服务配置 |
 | **Simple Claude LLM** | Claude 模型调用节点 | 需要对应 API 配置 |
@@ -47,6 +46,6 @@ MiniMax H3 节点已迁移到独立套件 `minimax_h3_tools`。原有 MiniMax H3
 ## 注意事项
 
 - 部分节点依赖模型文件、外部服务或 API key，请按节点输入和源码要求配置。
-- `requirements.txt` 包含 Qwen-VL 等节点所需依赖。
+- `requirements.txt` 包含 opencv-python 等图像处理节点所需依赖。
 - 仓库中的节点由 `__init__.py` 自动扫描并注册。单个节点导入失败时，ComfyUI 控制台会显示对应文件名和异常信息。
 - 更新 ComfyUI 或第三方依赖后，如节点加载失败，请先检查控制台导入错误和当前依赖版本。

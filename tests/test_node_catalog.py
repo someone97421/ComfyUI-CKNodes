@@ -179,34 +179,6 @@ class NodeCatalogTest(unittest.TestCase):
         self.assertEqual(missing_inputs, [])
         self.assertEqual(missing_options, [])
 
-    def test_video_combine_wrapper_delegates_lazily(self):
-        import importlib.util
-        import nodes
-
-        module_path = ROOT / "video_combine_node.py"
-        spec = importlib.util.spec_from_file_location("ck_video_combine_test", module_path)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-
-        class FakeVHSVideoCombine:
-            @classmethod
-            def INPUT_TYPES(cls):
-                return {"required": {"images": ("IMAGE",)}}
-
-            def combine_video(self, **kwargs):
-                return (kwargs["images"],)
-
-        original = nodes.NODE_CLASS_MAPPINGS.get("VHS_VideoCombine")
-        nodes.NODE_CLASS_MAPPINGS["VHS_VideoCombine"] = FakeVHSVideoCombine
-        try:
-            self.assertIn("images", module.VideoCombineCK.INPUT_TYPES()["required"])
-            self.assertEqual(module.VideoCombineCK().combine_video(images="ok"), ("ok",))
-        finally:
-            if original is None:
-                nodes.NODE_CLASS_MAPPINGS.pop("VHS_VideoCombine", None)
-            else:
-                nodes.NODE_CLASS_MAPPINGS["VHS_VideoCombine"] = original
-
 
 if __name__ == "__main__":
     unittest.main()
